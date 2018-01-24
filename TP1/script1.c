@@ -64,6 +64,7 @@ int isAlreadyPoint(int x, int y){
       if (_x == Ptest->coord[0] && _y == Ptest->coord[1]){
         printf("Ce point existe déjà\n");
         flag = 1;
+
         return flag;
       }}
     Ptest = Ptest->next;
@@ -85,7 +86,7 @@ Poly addAPoint (int x, int y)
     P1->coord[2] = 0;				//Attribution de la valeur sur la liste nouvellement cree
     P1->next = mon_poly;			//La suite de la nouvelle liste sera l'ancienne liste
     return P1;				//Renvoi de la nouvelle liste
-    
+
   }
   return mon_poly;
 }
@@ -97,8 +98,8 @@ void displayGL()
   Poly P1 = mon_poly;
   glClear(GL_COLOR_BUFFER_BIT);
 
-  glColor3f(0.1,.5,0.5);
-  glPointSize(8.0);
+  glColor3f(0.8,.1,0.1);
+  glPointSize(3.0);
 
   glBegin(GL_POINTS);
   while (P1 != NULL){
@@ -131,6 +132,7 @@ void displayGL()
 /* Callback OpenGL de gestion de souris */
 void mouseGL(int button, int state, int x, int y)
 {
+
   if (state ==  GLUT_UP && button == GLUT_LEFT_BUTTON)
   {
     mon_poly = addAPoint(x,winY-y);
