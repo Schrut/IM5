@@ -21,7 +21,7 @@ typedef struct Polygone
   struct Polygone* next;
 }*Poly;
 
-Poly poly_test;
+Poly mon_poly;
 
 int nb_point;
 
@@ -49,22 +49,52 @@ void reshapeGL(int _w, int _h)
 	glutPostRedisplay();
 }
 
+int isAlreadyPoint(int x, int y){
+  int i,j;
+  int _x,_y;
+  int flag = 0;
+  int voisinage = 10;
+  Poly Ptest = mon_poly;
+
+  while (Ptest != NULL){
+    for (i=-voisinage ; i < voisinage ; i++)
+      for (j=-voisinage ; j < voisinage ; j++){
+        _x = x+i;
+        _y = y+j;
+      if (_x == Ptest->coord[0] && _y == Ptest->coord[1]){
+        printf("Ce point existe déjà\n");
+        flag = 1;
+        return flag;
+      }}
+    Ptest = Ptest->next;
+  }
+  return flag;
+}
+
+
+
+/*Fonction qui ajoute un point*/
 Poly addAPoint (int x, int y)
 {
-  nb_point++;
-  Poly P1 = malloc (sizeof(struct Polygone));	//Attribution de l'espace memoire
-  P1->coord[0] = x;				//Attribution de la valeur sur la liste nouvellement cree
-  P1->coord[1] = y;				//Attribution de la valeur sur la liste nouvellement cree
-  P1->coord[2] = 0;				//Attribution de la valeur sur la liste nouvellement cree
-  P1->next = poly_test;			//La suite de la nouvelle liste sera l'ancienne liste
-  return P1;				//Renvoi de la nouvelle liste
+  if(!isAlreadyPoint(x,y)){
+
+    nb_point++;
+    Poly P1 = malloc (sizeof(struct Polygone));	//Attribution de l'espace memoire
+    P1->coord[0] = x;				//Attribution de la valeur sur la liste nouvellement cree
+    P1->coord[1] = y;				//Attribution de la valeur sur la liste nouvellement cree
+    P1->coord[2] = 0;				//Attribution de la valeur sur la liste nouvellement cree
+    P1->next = mon_poly;			//La suite de la nouvelle liste sera l'ancienne liste
+    return P1;				//Renvoi de la nouvelle liste
+    
+  }
+  return mon_poly;
 }
 
 /* Callback OpenGL d'affichage */
 void displayGL()
 {
   int i,j;
-  Poly P1 = poly_test;
+  Poly P1 = mon_poly;
   glClear(GL_COLOR_BUFFER_BIT);
 
   glColor3f(0.1,.5,0.5);
@@ -79,7 +109,7 @@ void displayGL()
 
   if (nb_point > 2)
   {
-    P1 = poly_test;
+    P1 = mon_poly;
     glColor3f(0.5,.2,0.8);
 
     glBegin(GL_LINE_LOOP);
@@ -103,7 +133,7 @@ void mouseGL(int button, int state, int x, int y)
 {
   if (state ==  GLUT_UP && button == GLUT_LEFT_BUTTON)
   {
-    poly_test = addAPoint(x,winY-y);
+    mon_poly = addAPoint(x,winY-y);
     glutPostRedisplay();
   }
 }
@@ -118,7 +148,7 @@ void init()
 void keyboardGL(unsigned char _k, int _x, int _y)
 {
 	if(_k == 27 || _k == 'q' || _k == 'Q'){
-		free(poly_test);
+		free(mon_poly);
 		exit(0);}
 }
 
