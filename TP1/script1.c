@@ -29,6 +29,7 @@ int motion;
 int button_pressed;
 int edit_mode;
 int display_mode;
+int* transistion;
 
 
 /* Fonction d'initialisation OpenGL */
@@ -52,6 +53,26 @@ void reshapeGL(int _w, int _h)
 	glLoadIdentity();
 
 	glutPostRedisplay();
+}
+
+/*Fonction qui nous renseigne si un point est dans le Polygone*/
+int isInside(int x, int y)
+{
+  int i;
+  int NI=0;
+  for (i = 0 ; i < nb_point ; i++){
+    if (mon_poly[i].coord[0] < x && mon_poly[i].coord[1] < y) transistion[i] = 1;
+    else if (mon_poly[i].coord[0] < x && mon_poly[i].coord[1] > y) transistion[i] = 2;
+    else if (mon_poly[i].coord[0] > x && mon_poly[i].coord[1] > y) transistion[i] = 3;
+    else if (mon_poly[i].coord[0] > x && mon_poly[i].coord[1] < y) transistion[i] = 4;
+    else {printf("on verra plus tard\n"); transistion[i] = 5;}
+  }
+  for (i = 0 ; i < nb_point-1 ; i++){
+    if (transistion[i] == 3 && transistion[i+1] == 4)
+      NI++;
+  }
+  if ( NI%2 == 0 ) return 1;
+  else return 0;
 }
 
 /*Fonction qui détécte si un point est déjà présent ou non*/
@@ -159,7 +180,6 @@ void displayGL()
       glEnd();}
   }
 
-  printf("display_mode : %d\n",display_mode );
   if (nb_point > 2 )
   {
     glColor3f(0.5,.2,0.8);
@@ -198,13 +218,18 @@ void mouseGL(int button, int state, int x, int y)
   button_pressed = state;
   if (state ==  GLUT_DOWN && button == GLUT_LEFT_BUTTON)
   {
-    if(!isAlreadyPoint(x,y) && edit_mode){
+    if(!isAlreadyPoint(x,y)){
       motion = nb_point;
-      addAPoint(x,y);
-      printf("nb_point = %d\n",nb_point);
-      insert_here = nb_point;
-    }
-    else{
+        if (edit_mode){
+          addAPoint(x,y);
+          printf("nb_point = %d\n",nb_point);
+          insert_here = nb_point;
+        }
+        else {
+          if (isInside(x,y));
+        }
+      }
+      else{
         motion = nearestPoint(x,y);
     }
   }
@@ -248,6 +273,7 @@ void init()
   edit_mode = 1;
   insert_here = 0;
   display_mode = 3;
+  transistion = malloc ( (nb_point_max+1) * sizeof(Poly));
   mon_poly = malloc (nb_point_max * sizeof(Poly));
 }
 
