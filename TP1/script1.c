@@ -17,7 +17,7 @@ int winY = 600;
 /*Structure pour les Coordonnées*/
 typedef struct Polygone
 {
-  GLdouble coord[3];
+  int coord[3];
 }Poly;
 
 Poly* mon_poly;
@@ -55,23 +55,29 @@ void reshapeGL(int _w, int _h)
 	glutPostRedisplay();
 }
 
+/*Fonction permettant de traiter les cas non évidents*/
+int delit_cas (int i)
+{
+
+}
+
 /*Fonction qui nous renseigne si un point est dans le Polygone*/
 int isInside(int x, int y)
 {
   int i;
   int NI=0;
-  for (i = 0 ; i < nb_point ; i++){
-    if (mon_poly[i].coord[0] < x && mon_poly[i].coord[1] < y) transistion[i] = 1;
-    else if (mon_poly[i].coord[0] < x && mon_poly[i].coord[1] > y) transistion[i] = 2;
-    else if (mon_poly[i].coord[0] > x && mon_poly[i].coord[1] > y) transistion[i] = 3;
-    else if (mon_poly[i].coord[0] > x && mon_poly[i].coord[1] < y) transistion[i] = 4;
-    else {printf("on verra plus tard\n"); transistion[i] = 5;}
+  mon_poly[nb_point].coord[0] = mon_poly[0].coord[0];
+  mon_poly[nb_point].coord[1] = mon_poly[0].coord[1];
+  for (i = 0 ; i < nb_point+1 ; i++){
+    if (mon_poly[i].coord[0] > x && mon_poly[i].coord[1] > y) transistion[i] = 1;
+    else if (mon_poly[i].coord[0] > x && mon_poly[i].coord[1] < y) transistion[i] = 2;
+    else {transistion[i] = delit_cas(i);}
   }
-  for (i = 0 ; i < nb_point-1 ; i++){
-    if (transistion[i] == 3 && transistion[i+1] == 4)
+  for (i = 0 ; i < nb_point ; i++){
+    if ( (transistion[i] == 1 && transistion[i+1] == 2) || (transistion[i] == 2 && transistion[i+1] == 1) )
       NI++;
   }
-  if ( NI%2 == 0 ) return 1;
+  if ( NI%2 != 0 && NI != 0) return 1;
   else return 0;
 }
 
@@ -226,7 +232,7 @@ void mouseGL(int button, int state, int x, int y)
           insert_here = nb_point;
         }
         else {
-          if (isInside(x,y));
+          if (isInside(x,y)) printf("Intérieur\n");
         }
       }
       else{
@@ -266,6 +272,8 @@ void motionGL(int x, int y)
 /*Fonction d'initialisation de nos variables*/
 void init()
 {
+  int i;
+
   nb_point = 0;
   nb_point_max = 100;
   motion = -1;
@@ -275,6 +283,9 @@ void init()
   display_mode = 3;
   transistion = malloc ( (nb_point_max+1) * sizeof(Poly));
   mon_poly = malloc (nb_point_max * sizeof(Poly));
+
+  for (i=0 ; i < nb_point_max ; i++)
+    mon_poly[i].coord[2] = 0;
 }
 
 /* Callback OpenGL de gestion de clavier */
