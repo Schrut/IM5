@@ -18,12 +18,17 @@ int winY = 600;
 typedef struct Polygone
 {
   GLdouble coord[3];
-  struct Polygone* next;
-}*Poly;
+}Poly;
 
-Poly mon_poly;
+Poly* mon_poly;
 
 int nb_point;
+int nb_point_max;
+int insert_here;
+int motion;
+int button_pressed;
+int edit_mode;
+int display_mode;
 
 
 /* Fonction d'initialisation OpenGL */
@@ -49,82 +54,139 @@ void reshapeGL(int _w, int _h)
 	glutPostRedisplay();
 }
 
+/*Fonction qui détécte si un point est déjà présent ou non*/
 int isAlreadyPoint(int x, int y){
-  int i,j;
-  int _x,_y;
-  int flag = 0;
-  int voisinage = 10;
-  Poly Ptest = mon_poly;
+  int i;
+  int x_left, x_right, y_top, y_bottom, x_point, y_point;
+  int neighboor = 10;
 
-  while (Ptest != NULL){
-    for (i=-voisinage ; i < voisinage ; i++)
-      for (j=-voisinage ; j < voisinage ; j++){
-        _x = x+i;
-        _y = y+j;
-      if (_x == Ptest->coord[0] && _y == Ptest->coord[1]){
-        printf("Ce point existe déjà\n");
-        flag = 1;
+      x_left = x - neighboor;
+      x_right = x + neighboor;
 
-        return flag;
-      }}
-    Ptest = Ptest->next;
+      y_bottom = y - neighboor;
+      y_top = y + neighboor;
+
+  for (i=0 ; i < nb_point ; i++){
+
+      x_point = mon_poly[i].coord[0];
+      y_point = mon_poly[i].coord[1];
+
+    if ( (x_point < x_right &&  x_point > x_left) && (y_point < y_top &&  y_point > y_bottom) ){
+      return 1;
+    }
   }
-  return flag;
+  return 0;
+}
+
+int nearestPoint (int x, int y)
+{
+  int i;
+  int x_left, x_right, y_left, y_right , x_point, y_point;
+  int neighboor = 10;
+
+      x_left = x - neighboor;
+      x_right = x + neighboor;
+
+      y_left = y - neighboor;
+      y_right = y + neighboor;
+
+  for (i=0 ; i < nb_point ; i++){
+
+      x_point = mon_poly[i].coord[0];
+      y_point = mon_poly[i].coord[1];
+
+    if ( (x_point < x_right &&  x_point > x_left) && (y_point < y_right &&  y_point > y_left) ){
+      return i;
+    }
+  }
+  return -1;
 }
 
 
-
 /*Fonction qui ajoute un point*/
-Poly addAPoint (int x, int y)
+void addAPoint (int x, int y)
 {
-  if(!isAlreadyPoint(x,y)){
+  int i;
+  if ( nb_point < 3 )
+    insert_here = nb_point;
 
-    nb_point++;
-    Poly P1 = malloc (sizeof(struct Polygone));	//Attribution de l'espace memoire
-    P1->coord[0] = x;				//Attribution de la valeur sur la liste nouvellement cree
-    P1->coord[1] = y;				//Attribution de la valeur sur la liste nouvellement cree
-    P1->coord[2] = 0;				//Attribution de la valeur sur la liste nouvellement cree
-    P1->next = mon_poly;			//La suite de la nouvelle liste sera l'ancienne liste
-    return P1;				//Renvoi de la nouvelle liste
-
+  if (nb_point != insert_here){
+    for (i = nb_point ; i > insert_here ; i--){
+        mon_poly[i+1] = mon_poly[i];
+    }
+    insert_here ++;
   }
-  return mon_poly;
+
+  mon_poly[insert_here].coord[0] = x;
+  mon_poly[insert_here].coord[1] = y;
+  mon_poly[insert_here].coord[2] = 0;
+  nb_point++;
+
+}
+
+/*Fonction qui supprime un point donné*/
+void deleteAPoint (int indice)
+{
+  int i;
+  for (i=indice ; i < nb_point ; i++)
+    mon_poly[i] = mon_poly[i+1];
+  nb_point--;
 }
 
 /* Callback OpenGL d'affichage */
 void displayGL()
 {
-  int i,j;
-  Poly P1 = mon_poly;
+  int i;
   glClear(GL_COLOR_BUFFER_BIT);
 
-  glColor3f(0.8,.1,0.1);
-  glPointSize(3.0);
-
-  glBegin(GL_POINTS);
-  while (P1 != NULL){
-    glVertex3f(P1->coord[0],P1->coord[1],P1->coord[2]);
-    P1 = P1->next;
-  }
-  glEnd();
-
-  if (nb_point > 2)
-  {
-    P1 = mon_poly;
-    glColor3f(0.5,.2,0.8);
-
-    glBegin(GL_LINE_LOOP);
-    while (P1 != NULL){
-      glVertex3f(P1->coord[0],P1->coord[1],P1->coord[2]);
-      P1 = P1->next;
+  for(i=0 ; i < nb_point ; i++){
+    if (i == insert_here){
+      glColor3f(0.8,0.8,0.1); glPointSize(8.0);
+      glBegin(GL_POINTS);
+        glVertex3f(mon_poly[i].coord[0],mon_poly[i].coord[1],mon_poly[i].coord[2]);
+      glEnd();
     }
-    glEnd();
+    else if (i == motion){
+      glColor3f(0.6,0.5,0.8); glPointSize(10.0);
+      glBegin(GL_POINTS);
+        glVertex3f(mon_poly[i].coord[0],mon_poly[i].coord[1],mon_poly[i].coord[2]);
+      glEnd();
+    }
+    else {
+      glColor3f(0.8,.1,0.1); glPointSize(5.0);
+      glBegin(GL_POINTS);
+        glVertex3f(mon_poly[i].coord[0],mon_poly[i].coord[1],mon_poly[i].coord[2]);
+      glEnd();}
   }
-  free(P1);
-  printf("nb_point = %d\n",nb_point);
 
-
-
+  printf("display_mode : %d\n",display_mode );
+  if (nb_point > 2 )
+  {
+    glColor3f(0.5,.2,0.8);
+    switch (display_mode) {
+      case 2 :
+        glBegin(GL_LINES);
+        for(i=0 ; i < nb_point ; i++){
+          glVertex3f(mon_poly[i].coord[0],mon_poly[i].coord[1],mon_poly[i].coord[2]);
+        }
+        glEnd();
+      break;
+      case 3 :
+        glBegin(GL_LINE_LOOP);
+        for(i=0 ; i < nb_point ; i++){
+          glVertex3f(mon_poly[i].coord[0],mon_poly[i].coord[1],mon_poly[i].coord[2]);
+        }
+        glEnd();
+      break;
+      case 4 :
+        glBegin(GL_LINE_STRIP);
+        for(i=0 ; i < nb_point ; i++){
+          glVertex3f(mon_poly[i].coord[0],mon_poly[i].coord[1],mon_poly[i].coord[2]);
+        }
+        glEnd();
+      break;
+    }
+  }
 	glutSwapBuffers();
 }
 
@@ -132,26 +194,91 @@ void displayGL()
 /* Callback OpenGL de gestion de souris */
 void mouseGL(int button, int state, int x, int y)
 {
-
-  if (state ==  GLUT_UP && button == GLUT_LEFT_BUTTON)
+  y = winY-y;
+  button_pressed = state;
+  if (state ==  GLUT_DOWN && button == GLUT_LEFT_BUTTON)
   {
-    mon_poly = addAPoint(x,winY-y);
-    glutPostRedisplay();
+    if(!isAlreadyPoint(x,y) && edit_mode){
+      motion = nb_point;
+      addAPoint(x,y);
+      printf("nb_point = %d\n",nb_point);
+      insert_here = nb_point;
+    }
+    else{
+        motion = nearestPoint(x,y);
+    }
   }
+  if (state ==  GLUT_DOWN && button == GLUT_RIGHT_BUTTON){
+    motion = -1;
+    if (isAlreadyPoint(x,y)){
+      deleteAPoint(nearestPoint(x,y));
+      printf("nb_point = %d\n",nb_point);
+    }
+  }
+  if (state ==  GLUT_DOWN && button == GLUT_MIDDLE_BUTTON){
+    motion = -1;
+    if (isAlreadyPoint(x,y)){
+      insert_here = nearestPoint(x,y);
+    }
+  }
+
+  glutPostRedisplay();
+}
+
+/* Callback OpenGL de gestion de drag */
+void motionGL(int x, int y)
+{
+	y = winY - y;
+
+	if(button_pressed == GLUT_LEFT_BUTTON && motion != -1)
+	{
+    mon_poly[motion].coord[0] = x;
+    mon_poly[motion].coord[1] = y;
+	}
+	glutPostRedisplay();
 }
 
 /*Fonction d'initialisation de nos variables*/
 void init()
 {
   nb_point = 0;
+  nb_point_max = 100;
+  motion = -1;
+  button_pressed = 0;
+  edit_mode = 1;
+  insert_here = 0;
+  display_mode = 3;
+  mon_poly = malloc (nb_point_max * sizeof(Poly));
 }
 
 /* Callback OpenGL de gestion de clavier */
-void keyboardGL(unsigned char _k, int _x, int _y)
+void keyboardGL(unsigned char k, int _x, int _y)
 {
-	if(_k == 27 || _k == 'q' || _k == 'Q'){
-		free(mon_poly);
-		exit(0);}
+  switch (k){
+
+    case 27 :
+		      free(mon_poly);
+		      exit(0);
+          break;
+
+    case 'm' :
+		      edit_mode = !edit_mode;
+          break;
+
+    case 'e' :
+          free(mon_poly);
+          init();
+          break;
+
+    case '+' :
+        if (display_mode == 4)
+          display_mode = 1;
+        else display_mode ++;
+          break;
+
+
+  }
+    glutPostRedisplay();
 }
 
 int main (int _argc, char ** _argv){
@@ -170,10 +297,11 @@ int main (int _argc, char ** _argv){
   glutCreateWindow("TP1 - Un point appartient-il a un Polygone ?");
 
   glutDisplayFunc(displayGL);
-	glutReshapeFunc(reshapeGL);
+  glutReshapeFunc(reshapeGL);
 
 	glutMouseFunc(mouseGL);
   glutKeyboardFunc(keyboardGL);
+  glutMotionFunc(motionGL);
 
   initGL();
   glutMainLoop();
