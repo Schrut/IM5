@@ -31,6 +31,7 @@ int edit_mode;
 int display_mode;
 int* transistion;
 
+void addAPoint (int x, int y);
 
 /* Fonction d'initialisation OpenGL */
 void initGL()
@@ -56,9 +57,13 @@ void reshapeGL(int _w, int _h)
 }
 
 /*Fonction permettant de traiter les cas non évidents*/
-int delit_cas (int i)
+int delit_cas (int i, int x, int y)
 {
-
+  double I;
+  I = (double)( mon_poly[i+1].coord[0] - mon_poly[i].coord[0] ) / (double)( mon_poly[i+1].coord[1] - mon_poly[i].coord[1] ) * ( y - mon_poly[i].coord[0] ) + mon_poly[i+1].coord[0];
+  addAPoint(I,y);
+  if ( I > x ) {printf("Valide : x : %d -- I : %f\n",x,I);return 1;}
+  else {printf("x : %d -- I : %f\n",x,I );return 0;}
 }
 
 /*Fonction qui nous renseigne si un point est dans le Polygone*/
@@ -71,14 +76,22 @@ int isInside(int x, int y)
   for (i = 0 ; i < nb_point+1 ; i++){
     if (mon_poly[i].coord[0] > x && mon_poly[i].coord[1] > y) transistion[i] = 1;
     else if (mon_poly[i].coord[0] > x && mon_poly[i].coord[1] < y) transistion[i] = 2;
-    else {transistion[i] = delit_cas(i);}
+    else if (mon_poly[i].coord[0] < x && mon_poly[i].coord[1] < y) transistion[i] = 3;
+    else if (mon_poly[i].coord[0] < x && mon_poly[i].coord[1] > y) transistion[i] = 4;
+    else {transistion[i] = 5;}
   }
+  printf("___________________\n");
   for (i = 0 ; i < nb_point ; i++){
+    printf("Transistion : %d -- Transistion+1 : %d\n",transistion[i],transistion[i+1]);
     if ( (transistion[i] == 1 && transistion[i+1] == 2) || (transistion[i] == 2 && transistion[i+1] == 1) )
       NI++;
+    else if ( (transistion[i] == 2 && transistion[i+1] == 4) || (transistion[i] == 4 && transistion[i+1] == 2) )
+      NI += delit_cas(i, x, y);
+    else if ( (transistion[i] == 1 && transistion[i+1] == 3) || (transistion[i] == 3 && transistion[i+1] == 1) )
+      NI += delit_cas(i, x, y);
   }
   if ( NI%2 != 0 && NI != 0) return 1;
-  else return 0;
+  else {printf("NI : %d\n",NI );return 0;}
 }
 
 /*Fonction qui détécte si un point est déjà présent ou non*/
