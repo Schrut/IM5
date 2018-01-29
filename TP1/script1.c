@@ -29,7 +29,10 @@ int motion;
 int button_pressed;
 int edit_mode;
 int display_mode;
+int xpos;
+int ypos;
 int* transistion;
+
 
 void addAPoint (int x, int y);
 
@@ -56,14 +59,32 @@ void reshapeGL(int _w, int _h)
 	glutPostRedisplay();
 }
 
+/* Fonction pour afficher du texte en OpenGL */
+void glPrintText(int x, int  y, const char * text)
+{
+	int i;
+
+	glRasterPos2i(x, y);
+
+	for(i = 0; i < (int)strlen(text); ++i)
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
+}
+
 /*Fonction permettant de traiter les cas non évidents*/
 int delit_cas (int i, int x, int y)
 {
-  double I;
-  I = (double)( mon_poly[i+1].coord[0] - mon_poly[i].coord[0] ) / (double)( mon_poly[i+1].coord[1] - mon_poly[i].coord[1] ) * ( y - mon_poly[i].coord[0] ) + mon_poly[i+1].coord[0];
-  addAPoint(I,y);
-  if ( I > x ) {printf("Valide : x : %d -- I : %f\n",x,I);return 1;}
-  else {printf("x : %d -- I : %f\n",x,I );return 0;}
+  double a, b, _x;
+
+  if (mon_poly[i+1].coord[1] == mon_poly[i].coord[1]) return 1;
+
+  a = (double)( mon_poly[i+1].coord[1] - mon_poly[i].coord[1] ) / (double)( mon_poly[i+1].coord[0] - mon_poly[i].coord[0] );
+  b = (double) mon_poly[i+1].coord[1] - (mon_poly[i+1].coord[0]*a);
+
+  _x = ( y - b ) / a;
+
+  if (_x > x) return 1;
+  else return 0;
+
 }
 
 /*Fonction qui nous renseigne si un point est dans le Polygone*/
@@ -82,7 +103,6 @@ int isInside(int x, int y)
   }
   printf("___________________\n");
   for (i = 0 ; i < nb_point ; i++){
-    printf("Transistion : %d -- Transistion+1 : %d\n",transistion[i],transistion[i+1]);
     if ( (transistion[i] == 1 && transistion[i+1] == 2) || (transistion[i] == 2 && transistion[i+1] == 1) )
       NI++;
     else if ( (transistion[i] == 2 && transistion[i+1] == 4) || (transistion[i] == 4 && transistion[i+1] == 2) )
@@ -179,6 +199,10 @@ void displayGL()
   int i;
   glClear(GL_COLOR_BUFFER_BIT);
 
+  if (isInside(xpos,winY-ypos))
+    printf("Interieur\n");
+
+
   for(i=0 ; i < nb_point ; i++){
     if (i == insert_here){
       glColor3f(0.8,0.8,0.1); glPointSize(8.0);
@@ -219,6 +243,13 @@ void displayGL()
       break;
       case 4 :
         glBegin(GL_LINE_STRIP);
+        for(i=0 ; i < nb_point ; i++){
+          glVertex3f(mon_poly[i].coord[0],mon_poly[i].coord[1],mon_poly[i].coord[2]);
+        }
+        glEnd();
+      break;
+      case 5 :
+        glBegin(GL_POLYGON);
         for(i=0 ; i < nb_point ; i++){
           glVertex3f(mon_poly[i].coord[0],mon_poly[i].coord[1],mon_poly[i].coord[2]);
         }
@@ -268,6 +299,7 @@ void mouseGL(int button, int state, int x, int y)
 
   glutPostRedisplay();
 }
+
 
 /* Callback OpenGL de gestion de drag */
 void motionGL(int x, int y)
@@ -321,7 +353,7 @@ void keyboardGL(unsigned char k, int _x, int _y)
           break;
 
     case '+' :
-        if (display_mode == 4)
+        if (display_mode == 5)
           display_mode = 1;
         else display_mode ++;
           break;
@@ -340,6 +372,7 @@ int main (int _argc, char ** _argv){
   posX = (glutGet(GLUT_SCREEN_WIDTH ) - winX) / 2;
 	posY = (glutGet(GLUT_SCREEN_HEIGHT) - winY) / 2;
 
+  //glfwGetMousePos(&m_xpos, &m_ypos);
   glutInitWindowSize(winX, winY);
 	glutInitWindowPosition(posX, posY);
 
