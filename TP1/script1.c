@@ -1,4 +1,3 @@
-
 /* Includes standards */
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,7 +30,9 @@ int edit_mode;
 int display_mode;
 int xpos;
 int ypos;
+int mouse_is_inside;
 int* transistion;
+const char* int_ext;
 
 
 void addAPoint (int x, int y);
@@ -101,7 +102,6 @@ int isInside(int x, int y)
     else if (mon_poly[i].coord[0] < x && mon_poly[i].coord[1] > y) transistion[i] = 4;
     else {transistion[i] = 5;}
   }
-  printf("___________________\n");
   for (i = 0 ; i < nb_point ; i++){
     if ( (transistion[i] == 1 && transistion[i+1] == 2) || (transistion[i] == 2 && transistion[i+1] == 1) )
       NI++;
@@ -111,7 +111,7 @@ int isInside(int x, int y)
       NI += delit_cas(i, x, y);
   }
   if ( NI%2 != 0 && NI != 0) return 1;
-  else {printf("NI : %d\n",NI );return 0;}
+  else return 0;
 }
 
 /*Fonction qui détécte si un point est déjà présent ou non*/
@@ -199,11 +199,12 @@ void displayGL()
   int i;
   glClear(GL_COLOR_BUFFER_BIT);
 
-  if (isInside(xpos,winY-ypos))
-    printf("Interieur\n");
+
+  glPrintText(10, winY - 10, int_ext);
 
 
-  for(i=0 ; i < nb_point ; i++){
+  for (i = 0; i < nb_point; i++)
+  {
     if (i == insert_here){
       glColor3f(0.8,0.8,0.1); glPointSize(8.0);
       glBegin(GL_POINTS);
@@ -260,6 +261,20 @@ void displayGL()
 	glutSwapBuffers();
 }
 
+void passivemouseGL (int x, int y)
+{ 
+  y = winY-y;
+  if(isInside(x, y))
+  {
+    int_ext = "Interieur";
+    mouse_is_inside = 1;
+  }
+  else{
+    int_ext = "Exterieur";
+    mouse_is_inside = 0;
+  }
+  glutPostRedisplay();
+}
 
 /* Callback OpenGL de gestion de souris */
 void mouseGL(int button, int state, int x, int y)
@@ -274,9 +289,6 @@ void mouseGL(int button, int state, int x, int y)
           addAPoint(x,y);
           printf("nb_point = %d\n",nb_point);
           insert_here = nb_point;
-        }
-        else {
-          if (isInside(x,y)) printf("Intérieur\n");
         }
       }
       else{
@@ -326,7 +338,9 @@ void init()
   edit_mode = 1;
   insert_here = 0;
   display_mode = 3;
-  transistion = malloc ( (nb_point_max+1) * sizeof(Poly));
+  mouse_is_inside = 0;
+  int_ext = "Exterieur";
+  transistion = malloc((nb_point_max + 1) * sizeof(Poly));
   mon_poly = malloc (nb_point_max * sizeof(Poly));
 
   for (i=0 ; i < nb_point_max ; i++)
@@ -363,6 +377,7 @@ void keyboardGL(unsigned char k, int _x, int _y)
     glutPostRedisplay();
 }
 
+
 int main (int _argc, char ** _argv){
 
   int posX, posY;
@@ -385,6 +400,7 @@ int main (int _argc, char ** _argv){
 	glutMouseFunc(mouseGL);
   glutKeyboardFunc(keyboardGL);
   glutMotionFunc(motionGL);
+  glutPassiveMotionFunc(passivemouseGL);
 
   initGL();
   glutMainLoop();
