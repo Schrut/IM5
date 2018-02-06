@@ -20,13 +20,19 @@ typedef struct Polygone
 }Poly;
 
 Poly* mon_poly;
+Poly* trou_poly;
 
 int nb_point;
+int nb_hole;
 int nb_point_max;
+int nb_hole_max;
 int insert_here;
+int insert_hole_here;
 int motion;
 int button_pressed;
+int add_hole_mode;
 int edit_mode;
+int coord_mode;
 int display_mode;
 int xpos;
 int ypos;
@@ -71,6 +77,7 @@ void glPrintText(int x, int  y, const char * text)
 		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
 }
 
+/*Transforme deux points donnés en un vecteurs*/
 Poly madeAVector (Poly A, Poly B)
 {
   Poly new_poly;
@@ -79,32 +86,58 @@ Poly madeAVector (Poly A, Poly B)
   return new_poly;
 }
 
+/*Determine si il y a deux arrêtes sécantes*/
 int isASecant (void)
 {
-  int i;
+  int i,j;
   int signe1 , signe2;
-  Poly ac, bc, ad, bd;
+  Poly ac, bc, ad, bd, ca, da, cb, db;
+
   mon_poly[nb_point].coord[0] = mon_poly[0].coord[0];
   mon_poly[nb_point].coord[1] = mon_poly[0].coord[1];
 
-  for (i=0 ; i < nb_point+1 -3 ; i++)
-  {
-    ac = madeAVector(mon_poly[i], mon_poly[i + 2]);
-    ad = madeAVector(mon_poly[i], mon_poly[i + 3]);
-    bc = madeAVector(mon_poly[i + 1], mon_poly[i + 2]);
-    bd = madeAVector(mon_poly[i + 1], mon_poly[i + 3]);
+  if (nb_point > 3){
+    for (i=0 ; i < nb_point ; i++)
+      for (j = nb_point -1 ; j > 1; j--)
+      {
+        ca = madeAVector(mon_poly[j], mon_poly[i]);
+        da = madeAVector(mon_poly[j - 1], mon_poly[i]);
+        cb = madeAVector(mon_poly[j], mon_poly[i + 1]);
+        db = madeAVector(mon_poly[j-1], mon_poly[i + 1]);
 
-    if (ac.coord[0] * ad.coord[1] - ad.coord[0] * ac.coord[1] > 0 ) signe1 = 1;
-    else signe1 = 0;
-    
-    if (bc.coord[0] * bd.coord[1] - bd.coord[0] * bc.coord[1] > 0 ) signe2 = 1;
-    else signe2 = 0;
+        if ((ca.coord[0] * cb.coord[1] - cb.coord[0] * ca.coord[1]) > 0)
+          signe1 = 1;
+        else
+          signe1 = 0;
 
-    if (signe1 != signe2){printf("Secant /!\\ entre %d-%d et %d-%d\n",i,i+1,i+2,i+3); return i;}
-    else return 0;
+        if ((da.coord[0] * db.coord[1] - db.coord[0] * da.coord[1]) > 0)
+          signe2 = 1;
+        else
+          signe2 = 0;
 
+        if (signe1 != signe2)
+        {
+          ac = madeAVector(mon_poly[i], mon_poly[j]);
+          ad = madeAVector(mon_poly[i], mon_poly[j - 1]);
+          bc = madeAVector(mon_poly[i + 1], mon_poly[j]);
+          bd = madeAVector(mon_poly[i + 1], mon_poly[j - 1]);
 
+          if ((ac.coord[0] * ad.coord[1] - ad.coord[0] * ac.coord[1]) > 0)
+            signe1 = 1;
+          else
+            signe1 = 0;
+
+          if ((bc.coord[0] * bd.coord[1] - bd.coord[0] * bc.coord[1]) > 0)
+            signe2 = 1;
+          else
+            signe2 = 0;
+
+          if (signe1 != signe2)
+            return 1;
+        }
+    }
   }
+  return 0;
 }
 
 /*Fonction permettant de traiter les cas non évidents*/
@@ -138,6 +171,9 @@ int isInside(int x, int y)
 {
   int i;
   int NI=0;
+  
+  //Faire condition si pas de trou ok mais si trou verif dans le trou
+
   
   mon_poly[nb_point].coord[0] = mon_poly[0].coord[0];
   mon_poly[nb_point].coord[1] = mon_poly[0].coord[1];
@@ -189,7 +225,7 @@ int isAlreadyPoint(int x, int y){
   }
   return 0;
 }
-
+//Fonction qui détermine le points le plus proche de la souris
 int nearestPoint (int x, int y)
 {
   int i;
@@ -236,6 +272,23 @@ void addAPoint (int x, int y)
 
 }
 
+/*Fonction qui ajoute un point*/
+void addAHole (int x, int y)
+{
+  int i;
+  insert_hole_here = nb_hole;
+  for (i = nb_hole; i > insert_hole_here; i--)
+  {
+    trou_poly[i + 1] = trou_poly[i];
+  }
+
+  trou_poly[insert_hole_here].coord[0] = x;
+  trou_poly[insert_hole_here].coord[1] = y;
+  trou_poly[insert_hole_here].coord[2] = 0;
+  nb_hole++;
+
+}
+
 /*Fonction qui supprime un point donné*/
 void deleteAPoint (int indice)
 {
@@ -249,11 +302,35 @@ void deleteAPoint (int indice)
 void displayGL()
 {
   int i;
+  char buffer[32];
   glClear(GL_COLOR_BUFFER_BIT);
 
-  printf("secant : %d\n",isASecant());
-
   glPrintText(10, winY - 10, int_ext);
+  
+  glColor3f(0.4, 0.1, 0.8);
+  if (isASecant())
+    glPrintText(10, winY - 25, "Secant!");
+
+  if (edit_mode)
+    glPrintText(10, winY - 40, "Mode d'edition");
+
+  if (coord_mode)
+  {
+    glColor3f(0.8, 0.8, 0.8);
+    for (i = 0; i < nb_point; ++i)
+    {
+      sprintf(buffer, "[%02d] (%3d, %3d)", i, mon_poly[i].coord[0], mon_poly[i].coord[1]);
+      glPrintText(mon_poly[i].coord[0], mon_poly[i].coord[1] + 6, buffer);
+    }
+    glEnd();
+  }
+
+  glBegin(GL_LINE_LOOP);
+  for (i = 0; i < nb_hole; i++)
+  {
+    glVertex3f(trou_poly[i].coord[0], trou_poly[i].coord[1], trou_poly[i].coord[2]);
+  }
+  glEnd();
 
   for (i = 0; i < nb_point; i++)
   {
@@ -337,10 +414,14 @@ void mouseGL(int button, int state, int x, int y)
   {
     if(!isAlreadyPoint(x,y)){
       motion = nb_point;
-        if (edit_mode){
+        if (edit_mode && !add_hole_mode){
           addAPoint(x,y);
           printf("nb_point = %d\n",nb_point);
           insert_here = nb_point;
+        }
+        if (edit_mode && add_hole_mode)
+        {
+          addAHole(x, y);
         }
       }
       else{
@@ -369,12 +450,21 @@ void mouseGL(int button, int state, int x, int y)
 void motionGL(int x, int y)
 {
 	y = winY - y;
+  int i;
 
 	if(button_pressed == GLUT_LEFT_BUTTON && motion != -1)
 	{
     mon_poly[motion].coord[0] = x;
     mon_poly[motion].coord[1] = y;
 	}
+  if (button_pressed == GLUT_LEFT_BUTTON && isInside(x,y) && !edit_mode)
+  {
+    for (i=0 ; i < nb_point ; i++)
+    {
+      mon_poly[i].coord[0] = x + (x - mon_poly[i].coord[0]);
+      mon_poly[i].coord[1] = y + (y - mon_poly[i].coord[1]);
+    }
+  }
 	glutPostRedisplay();
 }
 
@@ -383,20 +473,31 @@ void init()
 {
   int i;
 
-  nb_point = 0;
-  nb_point_max = 100;
-  motion = -1;
-  button_pressed = 0;
-  edit_mode = 1;
-  insert_here = 0;
-  display_mode = 3;
+  nb_point        = 0;
+  nb_point_max    = 100;
+  nb_hole         = 0;
+  nb_hole_max     = 100;
+  motion          = -1;
+  button_pressed  = 0;
+  edit_mode       = 1;
+  insert_here     = 0;
+  insert_hole_here= 0;
+  display_mode    = 3;
+  add_hole_mode   = 0;
+  coord_mode      = 0;
   mouse_is_inside = 0;
-  int_ext = "Exterieur";
+  int_ext         = "Exterieur";
+
+
   transition = malloc((nb_point_max + 1) * sizeof(Poly));
   mon_poly = malloc (nb_point_max * sizeof(Poly));
+  trou_poly = malloc (nb_hole_max * sizeof(Poly));
 
-  for (i=0 ; i < nb_point_max ; i++)
+  //Nous ne travaillerons pas avec dimension z
+  for (i=0 ; i < nb_point_max ; i++){
     mon_poly[i].coord[2] = 0;
+    trou_poly[i].coord[2] = 0;
+  }
 }
 
 /* Callback OpenGL de gestion de clavier */
@@ -416,6 +517,14 @@ void keyboardGL(unsigned char k, int _x, int _y)
     case 'e' :
           free(mon_poly);
           init();
+          break;
+
+    case 'c' :
+          coord_mode = !coord_mode;
+          break;
+
+    case 'h' :
+          add_hole_mode = !add_hole_mode;
           break;
 
     case '+' :
