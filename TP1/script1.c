@@ -294,6 +294,38 @@ Point nearestPoint (int x, int y)
   return near_point;
 }
 
+//Fonction qui détermine le points le plus proche de la souris
+int isAPointNear (int x, int y)
+{
+  int i, k;
+  int x_left, x_right, y_left, y_right , x_point, y_point;
+  int neighboor = 10;
+  int nb_points;
+  Poly working_poly;
+
+  for (k = 0 ; k < nb_poly ; k++)
+  {
+    working_poly = list_poly[k];
+    nb_points = working_poly.nb_point;
+    x_left = x - neighboor;
+    x_right = x + neighboor;
+
+    y_left = y - neighboor;
+    y_right = y + neighboor;
+
+    for (i=0 ; i < nb_points ; i++)
+    {
+      x_point = working_poly.points[i].coord[0];
+      y_point = working_poly.points[i].coord[1];
+
+      if ( (x_point < x_right &&  x_point > x_left) && (y_point < y_right &&  y_point > y_left) ){
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
 /*Fonction qui ajoute un point*/
 void addAPoint (int x, int y)
 {
@@ -438,7 +470,8 @@ void mouseGL(int button, int state, int x, int y)
   button_pressed = state;
   if (state ==  GLUT_DOWN && button == GLUT_LEFT_BUTTON)
   {
-    if(1){
+    if (!isAPointNear(x,y))
+    {
       if (edit_mode && !add_hole_mode){
           //motion = nb_point;
           addAPoint(x,y);
