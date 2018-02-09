@@ -196,62 +196,101 @@ int delit_cas (int i, int x, int y, int option, int which_poly)
   }
 
   else {
-    if (transition[i + 1] == transition[i])
+    if (transition[i + 1] == transition[i] )
       return 0;
-    else if ( (transition[i - 1] == 1 && transition[i + 1] == 2) || (transition[i - 1] == 2 && transition[i + 1] == 1) ) return 1;
-    else return 0; 
+    else if ( (transition[i - 1] == 1 && transition[i + 1] == 2) || (transition[i - 1] == 2 && transition[i + 1] == 1) )
+      return 1;
+    else if ( (transition[i - 1] == 4 && transition[i + 1] == 2) || (transition[i - 1] == 2 && transition[i + 1] == 4) )
+      return 1;
+    else
+      return 0;
   }
 }
 
-/*Fonction qui nous renseigne si un point est dans un Polygone*/
-int isInside(int x, int y, Poly current_poly)
+/*Is this point inside a poly?*/
+int isInside(int x, int y)
 {
+  /* To see if a point is inside we check its position by the poly's points.
+  *    
+  *               |
+  *      TL       |       TR
+  *               |
+  * --------------------------------
+  *               |
+  *      BL       |       BR
+  *               |
+  *
+  * Once we have divided our space if four, where the center is our point we have 5 cases : 
+  * if the point is TR : transition = 1
+  * if the point is BR : transition = 2
+  * if the point is BL : transition = 3
+  * if the point is TL : transition = 4
+  * if the point is just between TR & BR : transition = 4
+  *
+  * We count how many points is cutting the axe between TR and BR if it's odd the point we are looking is inside
+  * if it's even or null it's outside
+  *
+  * Some case are tricky. This is what 'delits-cas' does :
+  * The case where one poly's point is TR and the other BL or the opposite
+  * In these cases the axe can be cross but we need more process.
+  * What we do here is to looking for cutting point using line's equations define by points and axe.
+  * An other tricky case is if two point are on the axe. In this case we look previous and next points to where they were */
+
   int i;
   int is_it_inside;
   int NI;
   int nb_points;
-  nb_points = current_poly.nb_point;
-  NI = 0;
-  //Duplication de la première case sur la dernière pour "fermé" notre polygone
-  current_poly.points[nb_points].coord[0] = current_poly.points[0].coord[0];
-  current_poly.points[nb_points].coord[1] = current_poly.points[0].coord[1];
+  int k;
 
-  for (i = 0 ; i < nb_points+1 ; i++)
+  Poly current_poly;
+
+  for (k = 0; k < nb_poly; k++)
   {
-    if (current_poly.points[i].coord[0] >= x && current_poly.points[i].coord[1] > y)
-      transition[i] = 1;
-    else if (current_poly.points[i].coord[0] > x && current_poly.points[i].coord[1] < y)
-      transition[i] = 2;
-    else if (current_poly.points[i].coord[0] < x && current_poly.points[i].coord[1] < y)
-      transition[i] = 3;
-    else if (current_poly.points[i].coord[0] < x && current_poly.points[i].coord[1] > y)
-      transition[i] = 4;
-    else if (current_poly.points[i].coord[0] > x && current_poly.points[i].coord[1] == y)
-      transition[i] = 5;
-  }
+    
+    current_poly = list_poly[k];
 
-  for (i = 0 ; i < nb_points ; i++)
-  {
-    if ( (transition[i] == 1 && transition[i+1] == 2) || (transition[i] == 2 && transition[i+1] == 1) )
-      NI++;
-    else if ( (transition[i] == 2 && transition[i+1] == 4) || (transition[i] == 4 && transition[i+1] == 2) )
-      NI += delit_cas(i, x, y, 1, 1);
-    else if ( (transition[i] == 1 && transition[i+1] == 3) || (transition[i] == 3 && transition[i+1] == 1) )
-      NI += delit_cas(i, x, y, 1, 1);
-    else if ( transition[i] == 5 )
-      NI += delit_cas(i, x, y, 0, 1);
-  }
+    nb_points = current_poly.nb_point;
+    NI = 0;
+    //Duplicate the first point to the last one + 1 to close our polygone
+    current_poly.points[nb_points].coord[0] = current_poly.points[0].coord[0];
+    current_poly.points[nb_points].coord[1] = current_poly.points[0].coord[1];
 
-  if ( NI%2 != 0 && NI != 0)
-    is_it_inside = 1;
-  else
-    is_it_inside = 0;
+    for (i = 0 ; i < nb_points+1 ; i++)
+    {
+      if (current_poly.points[i].coord[0] >= x && current_poly.points[i].coord[1] > y)
+        transition[i] = 1;
+      else if (current_poly.points[i].coord[0] > x && current_poly.points[i].coord[1] < y)
+        transition[i] = 2;
+      else if (current_poly.points[i].coord[0] < x && current_poly.points[i].coord[1] < y)
+        transition[i] = 3;
+      else if (current_poly.points[i].coord[0] < x && current_poly.points[i].coord[1] > y)
+        transition[i] = 4;
+      else if (current_poly.points[i].coord[0] > x && current_poly.points[i].coord[1] == y)
+        transition[i] = 5;
+    }
 
-  //Si notre curseur se trouve dans un polygone on vérifie alors qu'il ne se trouve pas dans un trou
-  if (is_it_inside && current_poly.nb_hole > 0)
-  {
-    //if ( isInside(x, y, current_poly->hole[current_poly.nb_hole--]) )
-      //is_it_inside = !is_it_inside
+    for (i = 0 ; i < nb_points ; i++)
+    {
+      if ( (transition[i] == 1 && transition[i+1] == 2) || (transition[i] == 2 && transition[i+1] == 1) )
+        NI++;
+      else if ( (transition[i] == 2 && transition[i+1] == 4) || (transition[i] == 4 && transition[i+1] == 2) )
+        NI += delit_cas(i, x, y, 1, k);
+      else if ( (transition[i] == 1 && transition[i+1] == 3) || (transition[i] == 3 && transition[i+1] == 1) )
+        NI += delit_cas(i, x, y, 1, k);
+      else if ( transition[i] == 5 )
+        NI += delit_cas(i, x, y, 0, k);
+    }
+    if ( NI%2 != 0 && NI != 0)
+      return is_it_inside = 1;
+    else
+      return is_it_inside = 0;
+
+    //Si notre curseur se trouve dans un polygone on vérifie alors qu'il ne se trouve pas dans un trou
+    /*if (is_it_inside && current_poly.nb_hole > 0)
+    {
+      if ( isInside(x, y, current_poly.hole[current_poly.nb_hole--]) )
+        is_it_inside = !is_it_inside
+    }*/
   }
   
     return is_it_inside;
@@ -435,20 +474,36 @@ void displayGL()
       glVertex3f(hole_poly[i].coord[0], hole_poly[i].coord[1], hole_poly[i].coord[2]);
       glEnd();}
   }*/
-  Poly current_poly = list_poly[poly_selected];
+  for (k = 0 ; k < nb_poly ; k++){
+    Poly current_poly = list_poly[poly_selected];
 
-    glPointSize(10.0);
-    glColor3f(0.8, 0.2, 0.2);
-    glBegin(GL_LINE_LOOP);
-    for (i = 0; i < current_poly.nb_point; i++){
-      glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
-      printf("%d\n",current_poly.points[i].coord[2]);}
+    glPointSize(8.0);
+    glBegin(GL_POINTS);
+    for (i = 0; i < current_poly.nb_point; i++)
+    {
+      if (i != current_poly.insert_here)
+      {
+        glColor3f(0.9, 0.2, 0.1);
+        glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
+      }
+      else 
+      {
+        glColor3f(0.2, 0.5, 0.5);
+        glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
+      }
+    }
     glEnd();
-
+    glPointSize(1.0);
+    glColor3f(0.2, 0.2, 0.8);
+    glBegin(GL_LINE_LOOP);
+    for (i = 0; i < current_poly.nb_point; i++)
+      glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
+    glEnd();
+  }
   glutSwapBuffers();
 }
 
-/*void passivemouseGL (int x, int y)
+void passivemouseGL (int x, int y)
 { 
   y = winY-y;
   if(isInside(x, y))
@@ -461,7 +516,7 @@ void displayGL()
     mouse_is_inside = 0;
   }
   glutPostRedisplay();
-}*/
+}
 
 /* Callback OpenGL de gestion de souris */
 void mouseGL(int button, int state, int x, int y)
@@ -621,7 +676,7 @@ int main (int _argc, char ** _argv){
 	glutMouseFunc(mouseGL);
   glutKeyboardFunc(keyboardGL);
   //glutMotionFunc(motionGL);
-  //glutPassiveMotionFunc(passivemouseGL);
+  glutPassiveMotionFunc(passivemouseGL);
 
   initGL();
   glutMainLoop();
