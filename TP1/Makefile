@@ -1,5 +1,14 @@
-XLIBS = -L/usr/X11/lib -L/usr/X11R6/lib -lX11 -lXext -lpthread
-GLLIBS = -L/usr/X11R6/lib -lglut -lGL -lGLU
+EXE:=script1
 
-script1 : script1.o
-	gcc -o script1 script1.o $(GLLIBS) $(XLIBS) -lm
+all: clean $(EXE)
+
+clean:
+	rm -f $(EXE) && rm -f *.o
+
+$(EXE): *.c
+	gcc -Wall -o $(EXE) script1.c -lglut -lGLU -lGL -lm
+
+run: all
+	./$(EXE)
+
+

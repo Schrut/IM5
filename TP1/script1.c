@@ -13,13 +13,23 @@
 int winX = 800;
 int winY = 600;
 
-/*Structure pour les Coordonnées*/
 
+//Info Structure while be useful when we need to communicate info
+typedef struct Info
+{
+  int which_poly;
+  int which_point;
+  int is_a_hole;
+} Info;
+
+
+//Point Structure
 typedef struct Point
 {
   int coord[3];
 } Point;
 
+//Polygone Structure
 typedef struct Poly
 {
   Point* points;
@@ -31,11 +41,13 @@ typedef struct Poly
 
 Poly* list_poly;
 
-int motion;
+Info motion;
+
 int motion_hole;
 int nb_poly;
 int nb_poly_max;
 int nb_point_max;
+int nb_hole_max;
 int poly_selected;
 int button_pressed;
 int add_hole_mode;
@@ -85,20 +97,30 @@ void glPrintText(int x, int  y, const char * text)
 		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
 }
 
+void addAHole (void)
+{
+	list_poly[poly_selected].hole = malloc((nb_hole_max + 1) * sizeof(Poly));
+	int i;
+	for (i = 0 ; i < nb_hole_max , )
+	
+
+}
+
 void addAPoly (void)
 {
+	if (nb_poly < nb_poly_max){
   int i;
   list_poly[nb_poly].nb_point = 0;
   list_poly[nb_poly].insert_here = 0;
   list_poly[nb_poly].nb_hole = 0;
-  list_poly[nb_poly].points = malloc( nb_point_max + 1 * sizeof(Point) );
-
-  for (i = 0 ; i < nb_point_max ; i++ ){
-    list_poly[nb_poly].points[i].coord[2] = 0;
+  list_poly[nb_poly].points = malloc( 3*(nb_point_max) + 1 * sizeof(Point) );
+			for (i = 0; i < nb_point_max; i++)
+	{
+		list_poly[nb_poly].points[i].coord[2] = 0;
   }
 
-      if (nb_poly < nb_poly_max)
-          nb_poly++;
+	nb_poly++;
+	}
 }
 
 /*Transforme deux points donnés en un vecteurs*/
@@ -110,7 +132,7 @@ Point madeAVector(Point A, Point B)
   return new_point;
 }
 
-/*Determine si il y a deux arrêtes sécantes*/
+/*Is a secant in my polygon?*/
 int isASecant (void)
 {
   int x;
@@ -125,14 +147,16 @@ int isASecant (void)
       current_poly = list_poly[x];
       nb_points = current_poly.nb_point;
 
+			//Again here we close our polygon
       current_poly.points[nb_points].coord[0] = current_poly.points[nb_points].coord[0];
       current_poly.points[nb_points].coord[1] = current_poly.points[nb_points].coord[1];
-
+      current_poly.points[nb_points].coord[2] = 0;
+			//If we hve less than 3 points our poly isn't close yet so no need to check if we're inside it
       if (nb_points > 3)
       {
-        for (i = 0; i < nb_points; i++)
-          for (j = nb_points - 1; j > 1; j--)
-          {
+        for (i = 0; i < (nb_points/2)+1 ; i++)
+					for (j = nb_points; j > (nb_points / 2) - 1 ; j--)
+					{
             ca = madeAVector(current_poly.points[j], current_poly.points[i]);
             da = madeAVector(current_poly.points[j - 1], current_poly.points[i]);
             cb = madeAVector(current_poly.points[j], current_poly.points[i + 1]);
@@ -225,7 +249,7 @@ int isInside(int x, int y)
   * if the point is BR : transition = 2
   * if the point is BL : transition = 3
   * if the point is TL : transition = 4
-  * if the point is just between TR & BR : transition = 4
+  * if the point is right between TR & BR : transition = 5
   *
   * We count how many points is cutting the axe between TR and BR if it's odd the point we are looking is inside
   * if it's even or null it's outside
@@ -234,40 +258,48 @@ int isInside(int x, int y)
   * The case where one poly's point is TR and the other BL or the opposite
   * In these cases the axe can be cross but we need more process.
   * What we do here is to looking for cutting point using line's equations define by points and axe.
-  * An other tricky case is if two point are on the axe. In this case we look previous and next points to where they were */
+  * An other tricky case is if two point are on the axe. In this case we look the previous and next points to know where they are */
 
   int i;
   int is_it_inside;
   int NI;
   int nb_points;
   int k;
-
-  Poly current_poly;
+  Poly temp_poly;
+	Point current_point;
 
   for (k = 0; k < nb_poly; k++)
   {
     
-    current_poly = list_poly[k];
+    temp_poly = list_poly[k];
 
-    nb_points = current_poly.nb_point;
+    nb_points = temp_poly.nb_point;
     NI = 0;
     //Duplicate the first point to the last one + 1 to close our polygone
-    current_poly.points[nb_points].coord[0] = current_poly.points[0].coord[0];
-    current_poly.points[nb_points].coord[1] = current_poly.points[0].coord[1];
+    temp_poly.points[nb_points].coord[0] = temp_poly.points[0].coord[0];
+    temp_poly.points[nb_points].coord[1] = temp_poly.points[0].coord[1];
+    temp_poly.points[nb_points].coord[2] = 0;
 
-    for (i = 0 ; i < nb_points+1 ; i++)
-    {
-      if (current_poly.points[i].coord[0] >= x && current_poly.points[i].coord[1] > y)
-        transition[i] = 1;
-      else if (current_poly.points[i].coord[0] > x && current_poly.points[i].coord[1] < y)
-        transition[i] = 2;
-      else if (current_poly.points[i].coord[0] < x && current_poly.points[i].coord[1] < y)
-        transition[i] = 3;
-      else if (current_poly.points[i].coord[0] < x && current_poly.points[i].coord[1] > y)
-        transition[i] = 4;
-      else if (current_poly.points[i].coord[0] > x && current_poly.points[i].coord[1] == y)
-        transition[i] = 5;
-    }
+				for (i = 0; i < nb_points + 1; i++)
+		{
+			current_point = temp_poly.points[i];
+			 if (current_point.coord[0] >= x && current_point.coord[1] > y){
+				transition[i] = 1;
+			 }
+			 else if (current_point.coord[0] > x && current_point.coord[1] < y){
+					 transition[i] = 2;
+			 }
+			 else if (current_point.coord[0] < x && current_point.coord[1] < y){
+					 transition[i] = 3;
+			 }
+			 else if (current_point.coord[0] < x && current_point.coord[1] > y){
+					 transition[i] = 4;
+			 }
+			 else if (current_point.coord[0] > x && current_point.coord[1] == y){
+					 transition[i] = 5;
+			 }
+		}
+		
 
     for (i = 0 ; i < nb_points ; i++)
     {
@@ -276,14 +308,17 @@ int isInside(int x, int y)
       else if ( (transition[i] == 2 && transition[i+1] == 4) || (transition[i] == 4 && transition[i+1] == 2) )
         NI += delit_cas(i, x, y, 1, k);
       else if ( (transition[i] == 1 && transition[i+1] == 3) || (transition[i] == 3 && transition[i+1] == 1) )
-        NI += delit_cas(i, x, y, 1, k);
-      else if ( transition[i] == 5 )
-        NI += delit_cas(i, x, y, 0, k);
-    }
-    if ( NI%2 != 0 && NI != 0)
-      return is_it_inside = 1;
+				NI += delit_cas(i, x, y, 1, k);
+			else if ( transition[i] == 5 )
+				NI += delit_cas(i, x, y, 0, k);
+		}
+    if ( NI%2 != 0 && NI != 0){
+      return 1;
+			if (k == poly_selected)
+				return 2;
+		}
     else
-      return is_it_inside = 0;
+      is_it_inside = 0;
 
     //Si notre curseur se trouve dans un polygone on vérifie alors qu'il ne se trouve pas dans un trou
     /*if (is_it_inside && current_poly.nb_hole > 0)
@@ -292,21 +327,22 @@ int isInside(int x, int y)
         is_it_inside = !is_it_inside
     }*/
   }
-  
-    return is_it_inside;
+
+	return is_it_inside;
 }
 
-//Fonction qui détermine le points le plus proche de la souris
-Point nearestPoint (int x, int y)
+//Which point is the closest to the mouse?
+Info nearestPoint (int x, int y)
 {
   int i, k;
   int x_left, x_right, y_left, y_right , x_point, y_point;
   int neighboor = 10;
   int nb_points;
   Poly working_poly;
-  Point near_point;
-  near_point.coord[0] = -1;
-  near_point.coord[1] = -1;
+  Info is_a_point;
+  is_a_point.which_poly = -1;
+  is_a_point.which_point = -1;
+  is_a_point.is_a_hole = -1;
 
   for (k = 0 ; k < nb_poly ; k++)
   {
@@ -318,22 +354,24 @@ Point nearestPoint (int x, int y)
     y_left = y - neighboor;
     y_right = y + neighboor;
 
+		//Check the surrounding looking for points
     for (i=0 ; i < nb_points ; i++)
     {
       x_point = working_poly.points[i].coord[0];
       y_point = working_poly.points[i].coord[1];
-
-      if ( (x_point < x_right &&  x_point > x_left) && (y_point < y_right &&  y_point > y_left) ){
-        near_point.coord[0] = k;
-        near_point.coord[1] = i;
-        return near_point;
+      if ((x_point < x_right && x_point > x_left) && (y_point < y_right && y_point > y_left))
+      {
+        is_a_point.which_poly = k;
+        is_a_point.which_point = i;
+        return is_a_point;
       }
     }
   }
-  return near_point;
+	//If is a point we return the poly and point number or -1 and -1 if it's no point here
+  return is_a_point;
 }
 
-//Fonction qui détermine le points le plus proche de la souris
+//Is it a point by there?
 int isAPointNear (int x, int y)
 {
   int i, k;
@@ -351,8 +389,8 @@ int isAPointNear (int x, int y)
 
     y_left = y - neighboor;
     y_right = y + neighboor;
-
-    for (i=0 ; i < nb_points ; i++)
+		//Check the surrounding looking for points
+		for (i=0 ; i < nb_points ; i++)
     {
       x_point = working_poly.points[i].coord[0];
       y_point = working_poly.points[i].coord[1];
@@ -362,18 +400,18 @@ int isAPointNear (int x, int y)
       }
     }
   }
+	//If a point is near the mouse we return 1 else 0
   return 0;
 }
 
-/*Fonction qui ajoute un point*/
+/*Add a point in our poly*/
 void addAPoint (int x, int y)
 {
   int i;
+	if (list_poly[poly_selected].nb_point < 3)
+		list_poly[poly_selected].insert_here = list_poly[poly_selected].nb_point;
 
-  if (list_poly[poly_selected].nb_point < 3)
-    list_poly[poly_selected].insert_here = list_poly[poly_selected].nb_point;
-
-  if (list_poly[poly_selected].nb_point != list_poly[poly_selected].insert_here)
+	if (list_poly[poly_selected].nb_point != list_poly[poly_selected].insert_here)
   {
     for (i = list_poly[poly_selected].nb_point; i > list_poly[poly_selected].insert_here; i--)
     {
@@ -384,11 +422,12 @@ void addAPoint (int x, int y)
 
   list_poly[poly_selected].points[list_poly[poly_selected].insert_here].coord[0] = x;
   list_poly[poly_selected].points[list_poly[poly_selected].insert_here].coord[1] = y;
+  list_poly[poly_selected].points[list_poly[poly_selected].insert_here].coord[2] = 0;
   list_poly[poly_selected].nb_point++;
 }
 
 /*Fonction qui supprime un point donné*/
-/*oid deleteAPoint (int indice)
+/*void deleteAPoint (int indice)
 {
   int i;
   for (i=indice ; i < nb_point ; i++)
@@ -396,7 +435,7 @@ void addAPoint (int x, int y)
   nb_point--;
 }*/
 
-/* Callback OpenGL d'affichage */
+/* Callback OpenGL */
 void displayGL()
 {
   int i;
@@ -407,8 +446,11 @@ void displayGL()
 
   glPrintText(10, winY - 10, int_ext);
 
-  sprintf(buffer, "Nombre de Polygnes : %d",list_poly[poly_selected].nb_point);
+  sprintf(buffer, "Number of Points : %d",list_poly[poly_selected].nb_point);
   glPrintText(10, winY - 55, buffer);
+
+  sprintf(buffer, "Selected Polygon : %d",poly_selected+1);
+  glPrintText(10, winY - 70, buffer);
 
   if (isASecant())
     glPrintText(10, winY - 25, "Secant!");
@@ -416,21 +458,6 @@ void displayGL()
   if (edit_mode)
     glPrintText(10, winY - 40, "Mode d'edition");
 
-  /*if (coord_mode)
-  {
-    glColor3f(0.4, 0.1, 0.8);
-    for (i = 0; i < nb_point; ++i)
-    {
-      sprintf(buffer, "[%02d] (%3d, %3d)", i, mon_poly[i].coord[0], mon_poly[i].coord[1]);
-      glPrintText(mon_poly[i].coord[0], mon_poly[i].coord[1] + 6, buffer);
-    }
-    glColor3f(0.8, 0.1, 0.4);
-    for (i = 0; i < nb_hole; ++i)
-    {
-      sprintf(buffer, "[%02d] (%3d, %3d)", i, hole_poly[i].coord[0], hole_poly[i].coord[1]);
-      glPrintText(hole_poly[i].coord[0], hole_poly[i].coord[1] + 6, buffer);
-    }
-  }*/
 
   /*for (i = 0; i < nb_point; i++)
   {
@@ -474,32 +501,47 @@ void displayGL()
       glVertex3f(hole_poly[i].coord[0], hole_poly[i].coord[1], hole_poly[i].coord[2]);
       glEnd();}
   }*/
-  for (k = 0 ; k < nb_poly ; k++){
-    Poly current_poly = list_poly[poly_selected];
-
-    glPointSize(8.0);
-    glBegin(GL_POINTS);
+  for (k = 0 ; k < nb_poly ; k++)
+	{
+		Poly current_poly = list_poly[k];
+		if (coord_mode)
+		{
+			glColor3f(0.4, 0.1, 0.8);
+			for (i = 0; i < current_poly.nb_point; ++i)
+			{
+				sprintf(buffer, "[%02d] (%3d, %3d)", i, current_poly.points[i].coord[0], current_poly.points[i].coord[1]);
+				glPrintText(current_poly.points[i].coord[0], current_poly.points[i].coord[1] + 6, buffer);
+			}
+		}
     for (i = 0; i < current_poly.nb_point; i++)
     {
-      if (i != current_poly.insert_here)
-      {
-        glColor3f(0.9, 0.2, 0.1);
-        glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
-      }
-      else 
+
+			glPointSize(8.0);
+			glBegin(GL_POINTS);
+      if (i == current_poly.insert_here && k == poly_selected)
       {
         glColor3f(0.2, 0.5, 0.5);
         glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
       }
-    }
-    glEnd();
-    glPointSize(1.0);
-    glColor3f(0.2, 0.2, 0.8);
-    glBegin(GL_LINE_LOOP);
-    for (i = 0; i < current_poly.nb_point; i++)
-      glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
-    glEnd();
-  }
+      else 
+      {
+        glColor3f(0.9, 0.2, 0.1);
+        glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
+      }
+			glEnd();
+		}
+			glPointSize(1.0);
+			if (k == poly_selected)
+				glColor3f(0.2, 0.2, 0.8);
+			else
+				glColor3f(0.2,0.2,0.2);
+			glBegin(GL_LINE_LOOP);
+			for (i = 0; i < current_poly.nb_point; i++)
+			{
+				glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
+			}
+			glEnd();
+	}
   glutSwapBuffers();
 }
 
@@ -527,10 +569,9 @@ void mouseGL(int button, int state, int x, int y)
   {
     if (!isAPointNear(x,y))
     {
+			motion.which_poly = -1;
       if (edit_mode && !add_hole_mode){
-          //motion = nb_point;
           addAPoint(x,y);
-          //insert_here = nb_point;
         }
         /*if (edit_mode && add_hole_mode)
         {
@@ -540,7 +581,7 @@ void mouseGL(int button, int state, int x, int y)
         }*/
       }
       else{
-        //motion = nearestPoint(x,y);
+        motion = nearestPoint(x,y);
       }
   }
   /*if (state ==  GLUT_DOWN && button == GLUT_RIGHT_BUTTON){
@@ -550,45 +591,45 @@ void mouseGL(int button, int state, int x, int y)
       deleteAPoint(nearestPoint(x,y));
       insert_here--;
     }
-  }
-  if (state ==  GLUT_DOWN && button == GLUT_MIDDLE_BUTTON){
-    motion = -1;
-    if (nearestPoint(x, y) != -1)
-    {
-      insert_here = nearestPoint(x,y);
-    }
   }*/
+  if (state ==  GLUT_DOWN && button == GLUT_MIDDLE_BUTTON){
+    //motion = -1;
+    Info is_a_point_there = nearestPoint(x, y);
+    if (is_a_point_there.which_poly != -1)
+    {
+     // list_poly[is_a_point_there.which_poly].insert_here = is_a_point_there.which_point;
+    }
+  }
 
   glutPostRedisplay();
 }
 
 
 /* Callback OpenGL de gestion de drag */
-/*void motionGL(int x, int y)
+void motionGL(int x, int y)
 {
 	y = winY - y;
-  int i;
+  
 
-	if(button_pressed == GLUT_LEFT_BUTTON && motion != -1 && !add_hole_mode)
+	if(button_pressed == GLUT_LEFT_BUTTON && motion.which_poly != -1 )
 	{
-    mon_poly[motion].coord[0] = x;
-    mon_poly[motion].coord[1] = y;
+		list_poly[motion.which_poly].points[motion.which_point].coord[0] = x;
+		list_poly[motion.which_poly].points[motion.which_point].coord[1] = y;
 	}
-	if(button_pressed == GLUT_LEFT_BUTTON && motion != -1 && add_hole_mode)
+	/*if(button_pressed == GLUT_LEFT_BUTTON && motion != -1 && add_hole_mode)
 	{
     hole_poly[motion].coord[0] = x;
     hole_poly[motion].coord[1] = y;
-	}
-  if (button_pressed == GLUT_LEFT_BUTTON && isInside(x,y) && !edit_mode)
+	}*/
+  /*if (button_pressed == GLUT_LEFT_BUTTON && isInside(x,y) && !edit_mode)
   {
     for (i=0 ; i < nb_point ; i++)
     {
       mon_poly[i].coord[0] = x + (x - mon_poly[i].coord[0]);
       mon_poly[i].coord[1] = y + (y - mon_poly[i].coord[1]);
-    }
-  }
+    }*/
 	glutPostRedisplay();
-}*/
+}
 
 /*Fonction d'initialisation de nos variables*/
 void init()
@@ -598,7 +639,10 @@ void init()
   nb_poly         = 0;
   nb_poly_max     = 5;
   nb_point_max    = 100;
-  motion          = -1;
+  nb_hole_max    	= 5;
+  motion.which_point = -1;
+  motion.which_poly = -1;
+  motion.is_a_hole = -1;
   motion_hole     = -1;
   poly_selected   = 0;
   button_pressed  = 0;
@@ -609,8 +653,11 @@ void init()
   mouse_is_inside = 0;
   int_ext         = "Exterieur";
 
-  list_poly = malloc( (nb_poly_max + 1) * sizeof(Poly) );
-  addAPoly();
+		list_poly = malloc( (nb_poly_max + 1) * sizeof(Poly) );
+	for (i = 0 ; i < nb_poly_max ; i++)
+	{
+		addAPoly();
+	}
   transition = malloc( (nb_point_max + 1) * sizeof(int) );
   
 }
@@ -623,6 +670,17 @@ void keyboardGL(unsigned char k, int _x, int _y)
     case 27 :
 		      free(list_poly);
 		      exit(0);
+          break;
+
+    case 9 :
+					if (poly_selected < nb_poly-1)
+		      {
+						poly_selected++;
+					}
+					else
+					{ 
+						poly_selected = 0;
+					}
           break;
 
     case 'm' :
@@ -675,7 +733,7 @@ int main (int _argc, char ** _argv){
 
 	glutMouseFunc(mouseGL);
   glutKeyboardFunc(keyboardGL);
-  //glutMotionFunc(motionGL);
+  glutMotionFunc(motionGL);
   glutPassiveMotionFunc(passivemouseGL);
 
   initGL();
