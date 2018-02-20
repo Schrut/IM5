@@ -96,31 +96,36 @@ void glPrintText(int x, int  y, const char * text)
 	for(i = 0; i < (int)strlen(text); ++i)
 		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
 }
-
+/*
 void addAHole (void)
 {
 	list_poly[poly_selected].hole = malloc((nb_hole_max + 1) * sizeof(Poly));
 	int i;
-	for (i = 0 ; i < nb_hole_max , )
+	for (i = 0 ; i < nb_hole_max , i++ )
 	
 
-}
+}*/
 
-void addAPoly (void)
+void initPoly (void)
 {
-	if (nb_poly < nb_poly_max){
+  int x;
   int i;
-  list_poly[nb_poly].nb_point = 0;
-  list_poly[nb_poly].insert_here = 0;
-  list_poly[nb_poly].nb_hole = 0;
-  list_poly[nb_poly].points = malloc( 3*(nb_point_max) + 1 * sizeof(Point) );
+  for (x = 0; x < nb_poly_max; x++)
+  {
+    if (nb_poly < nb_poly_max)
+    {
+      list_poly[nb_poly].nb_point = 0;
+      list_poly[nb_poly].insert_here = 0;
+      list_poly[nb_poly].nb_hole = 0;
+      list_poly[nb_poly].points = malloc(3 * (nb_point_max) + 1 * sizeof(Point));
 			for (i = 0; i < nb_point_max; i++)
-	{
-		list_poly[nb_poly].points[i].coord[2] = 0;
-  }
+    {
+      list_poly[nb_poly].points[i].coord[2] = 0;
+    }
 
-	nb_poly++;
-	}
+    nb_poly++;
+    }
+  }
 }
 
 /*Transforme deux points donnés en un vecteurs*/
@@ -634,8 +639,6 @@ void motionGL(int x, int y)
 /*Fonction d'initialisation de nos variables*/
 void init()
 {
-  int i;
-
   nb_poly         = 0;
   nb_poly_max     = 5;
   nb_point_max    = 100;
@@ -653,11 +656,8 @@ void init()
   mouse_is_inside = 0;
   int_ext         = "Exterieur";
 
-		list_poly = malloc( (nb_poly_max + 1) * sizeof(Poly) );
-	for (i = 0 ; i < nb_poly_max ; i++)
-	{
-		addAPoly();
-	}
+	list_poly = malloc( (nb_poly_max + 1) * sizeof(Poly) );
+  initPoly();
   transition = malloc( (nb_point_max + 1) * sizeof(int) );
   
 }
