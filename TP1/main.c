@@ -35,12 +35,14 @@ typedef struct Poly
 	Point* points;
 	int nb_point;
 	int insert_here;
+  int which_poly;
 }Poly;
 
 Poly* list_poly;
 Poly* list_hole;
 
 Info motion;
+Info* is_a_secant;
 
 int motion_hole;
 int nb_poly;
@@ -110,34 +112,108 @@ Point madeAVector(Point A, Point B)
 }
 
 /*Is a secant in my polygon?*/
-int isASecant (void)
+void isASecant (void)
 {
   int x;
-    int i,j;
-    int signe1 , signe2;
-    Point ac, bc, ad, bd, ca, da, cb, db;
-    int nb_points;
-    Poly current_poly;
-    
-    for (x = 0; x < nb_poly; x++)
-    {
-      current_poly = list_poly[x];
-      nb_points = current_poly.nb_point;
+  int i,j;
+  int signe1 , signe2;
+  Point ac, bc, ad, bd, ca, da, cb, db;
+  int nb_points;
+  int nb_points_hole;
+  Poly current_poly;
+  Poly current_hole;
+  
 
-			//Again here we close our polygon
-      current_poly.points[nb_points].coord[0] = current_poly.points[nb_points].coord[0];
-      current_poly.points[nb_points].coord[1] = current_poly.points[nb_points].coord[1];
-      current_poly.points[nb_points].coord[2] = 0;
-			//If we hve less than 3 points our poly isn't close yet so no need to check if we're inside it
-      if (nb_points > 3)
-      {
-        for (i = 0; i < (nb_points/2)+1 ; i++)
-					for (j = nb_points; j > (nb_points / 2) - 1 ; j--)
+  for (x = 0; x < nb_poly; x++)
+  {
+    current_poly = list_poly[x];
+    current_hole = list_hole[x];
+    nb_points = current_poly.nb_point;
+    nb_points_hole = current_hole.nb_point;
+
+    /*We are going to work with a 1D array in which we want to store the secant hole and poly
+    * So in the (x*2) -> Poly
+    * In the (x*2+1)  -> Hole
+    *
+    *		0			1				2			3		
+    * ______________________________
+    *|     |      |      |    |     |
+    *|Poly |Hole  |Poly  |Hole|...  |
+    *|_____|______|______|____|_____|*/
+    
+    is_a_secant[x*2].which_point = 0; //Which point will, here, stand for nb_secant
+    is_a_secant[x*2].which_poly  = -1;
+    is_a_secant[x*2].is_a_hole   = -1;
+
+		is_a_secant[(x * 2) + 1].which_point = 0;
+		is_a_secant[(x * 2) + 1].which_poly = -1;
+		is_a_secant[(x * 2) + 1].is_a_hole = -1;
+
+		//Again here we close our polygon
+    //Poly
+    current_poly.points[nb_points].coord[0] = current_poly.points[nb_points].coord[0];
+    current_poly.points[nb_points].coord[1] = current_poly.points[nb_points].coord[1];
+    current_poly.points[nb_points].coord[2] = 0;
+
+    //Hole
+    current_hole.points[nb_points].coord[0] = current_hole.points[nb_points].coord[0];
+    current_hole.points[nb_points].coord[1] = current_hole.points[nb_points].coord[1];
+    current_hole.points[nb_points].coord[2] = 0;
+    //If we hve less than 3 points our poly isn't close yet, so no need to check if it is secant
+    if (nb_points > 3)
+    {
+      for (i = 0; i < (nb_points/2)+1 ; i++)
+        for (j = nb_points; j > (nb_points / 2) - 1 ; j--)
+        {
+          ca = madeAVector(current_poly.points[j], current_poly.points[i]);
+          da = madeAVector(current_poly.points[j - 1], current_poly.points[i]);
+          cb = madeAVector(current_poly.points[j], current_poly.points[i + 1]);
+          db = madeAVector(current_poly.points[j - 1], current_poly.points[i + 1]);
+
+          if ((ca.coord[0] * cb.coord[1] - cb.coord[0] * ca.coord[1]) > 0)
+            signe1 = 1;
+          else
+            signe1 = 0;
+
+          if ((da.coord[0] * db.coord[1] - db.coord[0] * da.coord[1]) > 0)
+            signe2 = 1;
+          else
+            signe2 = 0;
+
+          if (signe1 != signe2)
+          {
+          ac = madeAVector(current_poly.points[i], current_poly.points[j]);
+          ad = madeAVector(current_poly.points[i], current_poly.points[j - 1]);
+          bc = madeAVector(current_poly.points[i + 1], current_poly.points[j]);
+          bd = madeAVector(current_poly.points[i + 1], current_poly.points[j - 1]);
+
+          if ((ac.coord[0] * ad.coord[1] - ad.coord[0] * ac.coord[1]) > 0)
+            signe1 = 1;
+          else
+            signe1 = 0;
+
+          if ((bc.coord[0] * bd.coord[1] - bd.coord[0] * bc.coord[1]) > 0)
+            signe2 = 1;
+          else
+            signe2 = 0;
+
+          if (signe1 != signe2)
 					{
-            ca = madeAVector(current_poly.points[j], current_poly.points[i]);
-            da = madeAVector(current_poly.points[j - 1], current_poly.points[i]);
-            cb = madeAVector(current_poly.points[j], current_poly.points[i + 1]);
-            db = madeAVector(current_poly.points[j - 1], current_poly.points[i + 1]);
+						is_a_secant[x * 2].which_point	+= 1;
+						is_a_secant[x * 2].which_poly		= x;
+						is_a_secant[x * 2].is_a_hole		= 0;
+					}
+          }
+        }
+      if (nb_points_hole > 3)
+      {
+        for (i = 0; i < (nb_points_hole / 2) + 1; i++)
+          for (j = nb_points_hole; j > (nb_points_hole / 2) - 1; j--)
+          {
+            ca = madeAVector(current_hole.points[j], current_hole.points[i]);
+            cb = madeAVector(current_hole.points[j], current_hole.points[i + 1]);
+            da = madeAVector(current_hole.points[j - 1], current_hole.points[i]);
+            db = madeAVector(current_hole.points[j - 1], current_hole.points[i + 1]);
 
             if ((ca.coord[0] * cb.coord[1] - cb.coord[0] * ca.coord[1]) > 0)
               signe1 = 1;
@@ -151,28 +227,32 @@ int isASecant (void)
 
             if (signe1 != signe2)
             {
-            ac = madeAVector(current_poly.points[i], current_poly.points[j]);
-            ad = madeAVector(current_poly.points[i], current_poly.points[j - 1]);
-            bc = madeAVector(current_poly.points[i + 1], current_poly.points[j]);
-            bd = madeAVector(current_poly.points[i + 1], current_poly.points[j - 1]);
+              ac = madeAVector(current_hole.points[i], current_hole.points[j]);
+              ad = madeAVector(current_hole.points[i], current_hole.points[j - 1]);
+              bc = madeAVector(current_hole.points[i + 1], current_hole.points[j]);
+              bd = madeAVector(current_hole.points[i + 1], current_hole.points[j - 1]);
 
-            if ((ac.coord[0] * ad.coord[1] - ad.coord[0] * ac.coord[1]) > 0)
-              signe1 = 1;
-            else
-              signe1 = 0;
+              if ((ac.coord[0] * ad.coord[1] - ad.coord[0] * ac.coord[1]) > 0)
+                signe1 = 1;
+              else
+                signe1 = 0;
 
-            if ((bc.coord[0] * bd.coord[1] - bd.coord[0] * bc.coord[1]) > 0)
-              signe2 = 1;
-            else
-              signe2 = 0;
+              if ((bc.coord[0] * bd.coord[1] - bd.coord[0] * bc.coord[1]) > 0)
+                signe2 = 1;
+              else
+                signe2 = 0;
 
-            if (signe1 != signe2)
-              return 1;
-            }
+              if (signe1 != signe2)
+                {
+									is_a_secant[(x * 2) + 1].which_point += 1;
+									is_a_secant[(x * 2) + 1].which_poly = x;
+									is_a_secant[(x * 2) + 1].is_a_hole = 1;
+								}
+              }
           }
       }
+    }
   }
-  return 0;
 }
 
 /*Fonction permettant de traiter les cas non évidents*/
@@ -423,13 +503,17 @@ void addAPoint (int x, int y, int is_hole)
 }
 
 /*Fonction qui supprime un point donné*/
-/*void deleteAPoint (int indice)
+void deleteAPoint (Info point_to_delete)
 {
   int i;
-  for (i=indice ; i < nb_point ; i++)
-    mon_poly[i] = mon_poly[i+1];
-  nb_point--;
-}*/
+  for (i = point_to_delete.which_point; i < list_poly[point_to_delete.which_poly].nb_point; i++)
+    list_poly[point_to_delete.which_poly].points[i] = list_poly[point_to_delete.which_poly].points[i + 1];
+  printf("%d\n", list_poly[point_to_delete.which_poly].insert_here);
+  if (list_poly[point_to_delete.which_poly].insert_here == list_poly[point_to_delete.which_poly].nb_point)
+  list_poly[point_to_delete.which_poly].insert_here--;
+  printf("%d\n", list_poly[point_to_delete.which_poly].insert_here);
+  list_poly[point_to_delete.which_poly].nb_point--;
+}
 
 /* Callback OpenGL */
 void displayGL()
@@ -438,6 +522,7 @@ void displayGL()
   int k;
   char buffer[32];
   glClear(GL_COLOR_BUFFER_BIT);
+	isASecant();
   glColor3f(0.4, 0.1, 0.8);
 
   glPrintText(10, winY - 10, int_ext);
@@ -458,9 +543,6 @@ void displayGL()
 		glPrintText(10, winY - 70, buffer);
 	}
 
-	if (isASecant())
-		glPrintText(10, winY - 25, "Secant!");
-
 	if (edit_mode && !add_hole_mode)
 		glPrintText(10, winY - 40, "Poly Edition Mode");
 	if (edit_mode && add_hole_mode)
@@ -470,6 +552,19 @@ void displayGL()
 	{
 		Poly current_poly = list_poly[k];
 		Poly current_hole = list_hole[k];
+
+	//	printf("%d\n", is_a_secant[k * 2].which_point);
+
+				if (is_a_secant[k * 2].which_point && is_a_secant[k * 2].which_poly == poly_selected)
+		{
+			sprintf(buffer, "There are %d secant in this Poly", is_a_secant[k * 2].which_point);
+			glPrintText(10, winY - 25, buffer);
+		}
+		if (is_a_secant[(k * 2) + 1].which_point && is_a_secant[(k * 2) + 1].which_poly == poly_selected)
+		{
+			sprintf(buffer, "There are %d secant in this Poly's hole", is_a_secant[(k * 2) + 1].which_point);
+			glPrintText(200, winY - 25, buffer);
+		}
 		if (coord_mode)
 		{
 			glColor3f(0.4, 0.1, 0.8);
@@ -488,13 +583,13 @@ void displayGL()
 		{
 			glPointSize(8.0);
 			glBegin(GL_POINTS);
-			if (i == current_poly.insert_here && k == poly_selected)
-			{
+      if (i == current_poly.insert_here && k == poly_selected && !add_hole_mode)
+      {
 				glColor3f(0.2, 0.5, 0.5);
 				glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
 			}
-			else if (k == poly_selected)
-			{
+      else if (k == poly_selected && !add_hole_mode)
+      {
 				glColor3f(0.9, 0.2, 0.1);
 				glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
 			}
@@ -510,13 +605,13 @@ void displayGL()
 		{
 			glPointSize(8.0);
 			glBegin(GL_POINTS);
-			if (i == current_hole.insert_here && k == hole_selected)
-			{
+      if (i == current_hole.insert_here && k == hole_selected && add_hole_mode)
+      {
 				glColor3f(0.2, 0.5, 0.5);
 				glVertex3f(current_hole.points[i].coord[0], current_hole.points[i].coord[1], current_hole.points[i].coord[2]);
 			}
-			else if (k == hole_selected)
-			{
+      else if (k == hole_selected && add_hole_mode)
+      {
 				glColor3f(0.9, 0.2, 0.1);
 				glVertex3f(current_hole.points[i].coord[0], current_hole.points[i].coord[1], current_hole.points[i].coord[2]);
 			}
@@ -529,7 +624,7 @@ void displayGL()
 		}
 
 		glPointSize(1.0);
-		if (k == poly_selected)
+		if (k == poly_selected && !add_hole_mode)
 			glColor3f(0.2, 0.2, 0.8);
 		else
 			glColor3f(0.2,0.2,0.2);
@@ -541,8 +636,8 @@ void displayGL()
 		glEnd();
 
 		glPointSize(1.0);
-		if (k == hole_selected)
-			glColor3f(0.2, 0.2, 0.8);
+    if (k == hole_selected && add_hole_mode)
+      glColor3f(0.2, 0.2, 0.8);
 		else
 			glColor3f(0.2,0.2,0.2);
 		glBegin(GL_LINE_LOOP);
@@ -577,36 +672,38 @@ void mouseGL(int button, int state, int x, int y)
   button_pressed = state;
   if (state ==  GLUT_DOWN && button == GLUT_LEFT_BUTTON)
   {
-    if (!isAPointNear(x,y))
-    {
+		if (!isAPointNear(x, y))
+		{
 			motion.which_poly = -1;
       if (edit_mode && !add_hole_mode){
           addAPoint(x,y,0);
         }
         if (edit_mode && add_hole_mode)
         {
-					if (isInside(x, y) != -1)
-						addAPoint(x, y, 1);
+					if (isInside(x, y) != -1){
+            hole_selected = isInside(x, y);
+              addAPoint(x, y, 1);
+          }
 				}
 			}
       else{
         motion = nearestPoint(x,y);
       }
-  }
-  /*if (state ==  GLUT_DOWN && button == GLUT_RIGHT_BUTTON){
-    motion = -1;
-    if (nearestPoint(x, y) != -1)
+	}
+  if (state ==  GLUT_DOWN && button == GLUT_RIGHT_BUTTON){
+    motion = nearestPoint(x, y);
+    if (motion.which_point != -1)
     {
       deleteAPoint(nearestPoint(x,y));
-      insert_here--;
+      //insert_here--;
     }
-  }*/
+  }
   if (state ==  GLUT_DOWN && button == GLUT_MIDDLE_BUTTON){
     //motion = -1;
     Info is_a_point_there = nearestPoint(x, y);
     if (is_a_point_there.which_poly != -1)
     {
-     // list_poly[is_a_point_there.which_poly].insert_here = is_a_point_there.which_point;
+     list_poly[is_a_point_there.which_poly].insert_here = is_a_point_there.which_point;
     }
   }
 
@@ -661,6 +758,7 @@ void initPoly (void)
     {
 			list_hole[nb_hole].nb_point = 0;
 			list_hole[nb_hole].insert_here = 0;
+			list_hole[nb_hole].which_poly = -1;
 			list_hole[nb_hole].points = malloc(3 * (nb_point_max) + 1 * sizeof(Point));
 			nb_hole++;
     }
@@ -692,7 +790,7 @@ void init()
 
   initPoly();
   transition = malloc( (nb_point_max + 1) * sizeof(int) );
-  
+	is_a_secant = malloc(nb_hole_max + nb_point_max * sizeof(Info));
 }
 
 /* Callback OpenGL de gestion de clavier */
