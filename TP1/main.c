@@ -42,7 +42,6 @@ Poly* list_poly;
 Poly* list_hole;
 
 Info motion;
-Info* is_a_secant;
 
 int motion_hole;
 int nb_poly;
@@ -112,147 +111,68 @@ Point madeAVector(Point A, Point B)
 }
 
 /*Is a secant in my polygon?*/
-void isASecant (void)
+int isASecant(Poly current_poly)
 {
-  int x;
   int i,j;
   int signe1 , signe2;
   Point ac, bc, ad, bd, ca, da, cb, db;
   int nb_points;
-  int nb_points_hole;
-  Poly current_poly;
-  Poly current_hole;
-  
+  int nb_secant;
 
-  for (x = 0; x < nb_poly; x++)
+  nb_points = current_poly.nb_point;
+  nb_secant = 0;
+  //Again here we close our polygon
+  //Poly
+  current_poly.points[nb_points].coord[0] = current_poly.points[0].coord[0];
+  current_poly.points[nb_points].coord[1] = current_poly.points[0].coord[1];
+  current_poly.points[nb_points].coord[2] = 0;
+
+  //If we hve less than 3 points our poly isn't close yet, so no need to check if it is secant
+  if (nb_points > 3)
   {
-    current_poly = list_poly[x];
-    current_hole = list_hole[x];
-    nb_points = current_poly.nb_point;
-    nb_points_hole = current_hole.nb_point;
+    for (i = 0; i < nb_points/2 + 2 ; i++)
+      for (j = nb_points; j > nb_points/2 - 1 ; j--)
+      {
+        ca = madeAVector(current_poly.points[j], current_poly.points[i]);
+        da = madeAVector(current_poly.points[j - 1], current_poly.points[i]);
+        cb = madeAVector(current_poly.points[j], current_poly.points[i + 1]);
+        db = madeAVector(current_poly.points[j - 1], current_poly.points[i + 1]);
 
-    /*We are going to work with a 1D array in which we want to store the secant hole and poly
-    * So in the (x*2) -> Poly
-    * In the (x*2+1)  -> Hole
-    *
-    *		0			1				2			3		
-    * ______________________________
-    *|     |      |      |    |     |
-    *|Poly |Hole  |Poly  |Hole|...  |
-    *|_____|______|______|____|_____|*/
-    
-    is_a_secant[x*2].which_point = 0; //Which point will, here, stand for nb_secant
-    is_a_secant[x*2].which_poly  = -1;
-    is_a_secant[x*2].is_a_hole   = -1;
+        if ((ca.coord[0] * cb.coord[1] - cb.coord[0] * ca.coord[1]) >= 0)
+          signe1 = 1;
+        else
+          signe1 = 0;
 
-		is_a_secant[(x * 2) + 1].which_point = 0;
-		is_a_secant[(x * 2) + 1].which_poly = -1;
-		is_a_secant[(x * 2) + 1].is_a_hole = -1;
+        if ((da.coord[0] * db.coord[1] - db.coord[0] * da.coord[1]) >= 0)
+          signe2 = 1;
+        else
+          signe2 = 0;
 
-		//Again here we close our polygon
-    //Poly
-    current_poly.points[nb_points].coord[0] = current_poly.points[nb_points].coord[0];
-    current_poly.points[nb_points].coord[1] = current_poly.points[nb_points].coord[1];
-    current_poly.points[nb_points].coord[2] = 0;
-
-    //Hole
-    current_hole.points[nb_points].coord[0] = current_hole.points[nb_points].coord[0];
-    current_hole.points[nb_points].coord[1] = current_hole.points[nb_points].coord[1];
-    current_hole.points[nb_points].coord[2] = 0;
-    //If we hve less than 3 points our poly isn't close yet, so no need to check if it is secant
-    if (nb_points > 3)
-    {
-      for (i = 0; i < (nb_points/2)+1 ; i++)
-        for (j = nb_points; j > (nb_points / 2) - 1 ; j--)
+        if (signe1 != signe2)
         {
-          ca = madeAVector(current_poly.points[j], current_poly.points[i]);
-          da = madeAVector(current_poly.points[j - 1], current_poly.points[i]);
-          cb = madeAVector(current_poly.points[j], current_poly.points[i + 1]);
-          db = madeAVector(current_poly.points[j - 1], current_poly.points[i + 1]);
-
-          if ((ca.coord[0] * cb.coord[1] - cb.coord[0] * ca.coord[1]) > 0)
-            signe1 = 1;
-          else
-            signe1 = 0;
-
-          if ((da.coord[0] * db.coord[1] - db.coord[0] * da.coord[1]) > 0)
-            signe2 = 1;
-          else
-            signe2 = 0;
-
-          if (signe1 != signe2)
-          {
           ac = madeAVector(current_poly.points[i], current_poly.points[j]);
           ad = madeAVector(current_poly.points[i], current_poly.points[j - 1]);
           bc = madeAVector(current_poly.points[i + 1], current_poly.points[j]);
           bd = madeAVector(current_poly.points[i + 1], current_poly.points[j - 1]);
 
-          if ((ac.coord[0] * ad.coord[1] - ad.coord[0] * ac.coord[1]) > 0)
+          if ((ac.coord[0] * ad.coord[1] - ad.coord[0] * ac.coord[1]) >= 0)
             signe1 = 1;
           else
             signe1 = 0;
 
-          if ((bc.coord[0] * bd.coord[1] - bd.coord[0] * bc.coord[1]) > 0)
+          if ((bc.coord[0] * bd.coord[1] - bd.coord[0] * bc.coord[1]) >= 0)
             signe2 = 1;
           else
             signe2 = 0;
 
           if (signe1 != signe2)
-					{
-						is_a_secant[x * 2].which_point	+= 1;
-						is_a_secant[x * 2].which_poly		= x;
-						is_a_secant[x * 2].is_a_hole		= 0;
-					}
+          {
+            nb_secant++;
           }
         }
-      if (nb_points_hole > 3)
-      {
-        for (i = 0; i < (nb_points_hole / 2) + 1; i++)
-          for (j = nb_points_hole; j > (nb_points_hole / 2) - 1; j--)
-          {
-            ca = madeAVector(current_hole.points[j], current_hole.points[i]);
-            cb = madeAVector(current_hole.points[j], current_hole.points[i + 1]);
-            da = madeAVector(current_hole.points[j - 1], current_hole.points[i]);
-            db = madeAVector(current_hole.points[j - 1], current_hole.points[i + 1]);
-
-            if ((ca.coord[0] * cb.coord[1] - cb.coord[0] * ca.coord[1]) > 0)
-              signe1 = 1;
-            else
-              signe1 = 0;
-
-            if ((da.coord[0] * db.coord[1] - db.coord[0] * da.coord[1]) > 0)
-              signe2 = 1;
-            else
-              signe2 = 0;
-
-            if (signe1 != signe2)
-            {
-              ac = madeAVector(current_hole.points[i], current_hole.points[j]);
-              ad = madeAVector(current_hole.points[i], current_hole.points[j - 1]);
-              bc = madeAVector(current_hole.points[i + 1], current_hole.points[j]);
-              bd = madeAVector(current_hole.points[i + 1], current_hole.points[j - 1]);
-
-              if ((ac.coord[0] * ad.coord[1] - ad.coord[0] * ac.coord[1]) > 0)
-                signe1 = 1;
-              else
-                signe1 = 0;
-
-              if ((bc.coord[0] * bd.coord[1] - bd.coord[0] * bc.coord[1]) > 0)
-                signe2 = 1;
-              else
-                signe2 = 0;
-
-              if (signe1 != signe2)
-                {
-									is_a_secant[(x * 2) + 1].which_point += 1;
-									is_a_secant[(x * 2) + 1].which_poly = x;
-									is_a_secant[(x * 2) + 1].is_a_hole = 1;
-								}
-              }
-          }
       }
-    }
   }
+  return nb_secant;
 }
 
 /*Fonction permettant de traiter les cas non évidents*/
@@ -373,11 +293,11 @@ int isInside(int x, int y)
       return k;
 		}
     //Si notre curseur se trouve dans un polygone on vérifie alors qu'il ne se trouve pas dans un trou
-    /*if (is_it_inside && current_poly.nb_point_hole > 0)
+    if (k != -1 && current_poly.nb_point_hole > 0)
     {
       if ( isInside(x, y, current_poly.hole[current_poly.nb_point_hole--]) )
         is_it_inside = !is_it_inside
-    }*/
+    }
   }
 
 	return -1;
@@ -522,7 +442,7 @@ void displayGL()
   int k;
   char buffer[32];
   glClear(GL_COLOR_BUFFER_BIT);
-	isASecant();
+
   glColor3f(0.4, 0.1, 0.8);
 
   glPrintText(10, winY - 10, int_ext);
@@ -553,17 +473,15 @@ void displayGL()
 		Poly current_poly = list_poly[k];
 		Poly current_hole = list_hole[k];
 
-	//	printf("%d\n", is_a_secant[k * 2].which_point);
-
-				if (is_a_secant[k * 2].which_point && is_a_secant[k * 2].which_poly == poly_selected)
+		if ( isASecant(current_poly) > 0 && k == poly_selected )
 		{
-			sprintf(buffer, "There are %d secant in this Poly", is_a_secant[k * 2].which_point);
-			glPrintText(10, winY - 25, buffer);
+      sprintf(buffer, "There are %d secant in this Poly", isASecant(current_poly));
+      glPrintText(10, winY - 25, buffer);
 		}
-		if (is_a_secant[(k * 2) + 1].which_point && is_a_secant[(k * 2) + 1].which_poly == poly_selected)
-		{
-			sprintf(buffer, "There are %d secant in this Poly's hole", is_a_secant[(k * 2) + 1].which_point);
-			glPrintText(200, winY - 25, buffer);
+    if ( isASecant(current_hole) > 0 && k == poly_selected )
+    {
+      sprintf(buffer, "There are %d secant in this Poly's hole", isASecant(current_hole));
+      glPrintText(200, winY - 25, buffer);
 		}
 		if (coord_mode)
 		{
@@ -790,7 +708,6 @@ void init()
 
   initPoly();
   transition = malloc( (nb_point_max + 1) * sizeof(int) );
-	is_a_secant = malloc(nb_hole_max + nb_point_max * sizeof(Info));
 }
 
 /* Callback OpenGL de gestion de clavier */
