@@ -658,7 +658,7 @@ void displayGL()
 			glColor3f(0.2, 0.2, 0.8);
 		else
 			glColor3f(0.2,0.2,0.2);
-		glBegin(GL_LINE_LOOP);
+		glBegin(display_mode);
 		for (i = 0; i < current_poly.nb_point; i++)
 		{
 			glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
@@ -670,7 +670,7 @@ void displayGL()
 			glColor3f(0.2, 0.2, 0.8);
 		else
 			glColor3f(0.2,0.2,0.2);
-		glBegin(GL_LINE_LOOP);
+		glBegin(display_mode);
 		for (i = 0; i < current_hole.nb_point; i++)
 		{
 			glVertex3f(current_hole.points[i].coord[0], current_hole.points[i].coord[1], current_hole.points[i].coord[2]);
@@ -825,6 +825,26 @@ void initPoly (void)
   }
 }
 
+void usage()
+{
+	printf("---------------------------------------------------------------------------\n");
+	printf("%c[%dm", 27, 1);
+	printf("[Utilisation]\n");
+	printf("%c[%dm", 27, 0);
+	printf("\n\n");
+	printf("    Clic gauche   :\t ajouter/deplacer un point / deplacer un polygone\n");
+	printf("    Clic droit    :\t supprimer un point\n");
+	printf("    Clic milieu   :\t definir un nouvel indice d'insertion\n");
+	printf("    1-4				    :\t naviguer entre les differents affichage\n");
+	printf("    'e'           :\t supprimer tous les points\n");
+	printf("    'tab'         :\t passer au polygone suivant\n");
+	printf("    'm'           :\t activer/desactive le mode d'edition\n");
+	printf("    'c'           :\t afficher/masquer les coordonnees des points de controle\n");
+	printf("    'h'           :\t travailler sur les trous\n");
+	printf("    'q'/Esc       :\t quitter\n");
+	printf("---------------------------------------------------------------------------\n");
+}
+
 /*Fonction d'initialisation de nos variables*/
 void init()
 {
@@ -842,8 +862,8 @@ void init()
   button_pressed  = 0;
 	button_state		= 0;
   edit_mode       = 1;
-  display_mode    = 2;
-  add_hole_mode   = 0;
+	display_mode 		= GL_LINE_LOOP;
+	add_hole_mode   = 0;
   coord_mode      = 0;
   mouse_is_inside = 0;
   nb_point_max    = 100;
@@ -855,6 +875,7 @@ void init()
 
   initPoly();
   transition = malloc( (nb_point_max + 1) * sizeof(int) );
+	usage();
 }
 
 /* Callback OpenGL de gestion de clavier */
@@ -878,7 +899,23 @@ void keyboardGL(unsigned char k, int _x, int _y)
 					}
           break;
 
-    case 'm' :
+		case '1':
+			display_mode = GL_POINTS;
+			break;
+
+		case '2':
+			display_mode = GL_LINES;
+			break;
+
+		case '3':
+			display_mode = GL_LINE_LOOP;
+			break;
+
+		case '4':
+			display_mode = GL_LINE_STRIP;
+			break;
+
+		case 'm' :
 		      edit_mode = !edit_mode;
           break;
 
