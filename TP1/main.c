@@ -211,6 +211,17 @@ int delit_cas (int i, int x, int y, int option, Poly working_poly)
   }
 }
 
+/*Are we in the windows?*/
+int isOutsideWindow(int x, int y)
+{
+	int winW = glutGet(GLUT_WINDOW_WIDTH);
+	int winH = glutGet(GLUT_WINDOW_HEIGHT);
+
+	if (x > winW || x < 0) return 1;
+	if (y > winH || y < 0) return 1;
+	else return 0;
+}
+
 /*Is this point inside a poly?*/
 int isInside(int x, int y)
 {
@@ -754,40 +765,56 @@ void motionGL(int x, int y)
 {
 	y = winY - y;
   int i;
+	int outside = 0;
   
 
 	if(button_pressed == GLUT_LEFT_BUTTON && motion.which_poly != -1 && edit_mode)
 	{
-		if (motion.is_a_hole)
+		if (motion.is_a_hole && !isOutsideWindow(x, y))
 		{
 			list_hole[motion.which_poly].points[motion.which_point].coord[0] = x;
 			list_hole[motion.which_poly].points[motion.which_point].coord[1] = y;
 		}
-    else
-    {
+		else if (!motion.is_a_hole && !isOutsideWindow(x, y))
+		{
       list_poly[motion.which_poly].points[motion.which_point].coord[0] = x;
       list_poly[motion.which_poly].points[motion.which_point].coord[1] = y;
     }
 	}
+	
 	if (button_pressed == GLUT_LEFT_BUTTON && isInside(x, y) == -1 && !edit_mode)
 	{
 		motionX.which_poly = -2;
 	}
+
 	if (button_pressed == GLUT_LEFT_BUTTON && isInside(x, y) != -1 &&!edit_mode && motionX.which_poly != -2)
 	{
 		if (motionX.which_poly == isInside(x, y) )
 		{
 			for (i = 0; i < list_poly[motionX.which_poly].nb_point; i++)
-			{
-				list_poly[motionX.which_poly].points[i].coord[0] = list_poly[motionX.which_poly].points[i].coord[0] - (motionX.which_point - x);
-				list_poly[motionY.which_poly].points[i].coord[1] = list_poly[motionY.which_poly].points[i].coord[1] - (motionY.which_point - y);
-			}
+				{
+					if (isOutsideWindow(list_poly[motionX.which_poly].points[i].coord[0] - (motionX.which_point - x), list_poly[motionY.which_poly].points[i].coord[1] - (motionY.which_point - y)))
+					{
+						outside = 1;
+					}
+				}
+			for (i = 0; i < list_poly[motionX.which_poly].nb_point; i++)
+				{
+					if (!outside)
+					{
+						list_poly[motionX.which_poly].points[i].coord[0] = list_poly[motionX.which_poly].points[i].coord[0] - (motionX.which_point - x);
+						list_poly[motionY.which_poly].points[i].coord[1] = list_poly[motionY.which_poly].points[i].coord[1] - (motionY.which_point - y);
+					}
+				}
 			for (i = 0; i < list_hole[motionX.which_poly].nb_point; i++)
 			{
-				list_hole[motionX.which_poly].points[i].coord[0] = list_hole[motionX.which_poly].points[i].coord[0] - (motionX.which_point - x);
-				list_hole[motionY.which_poly].points[i].coord[1] = list_hole[motionY.which_poly].points[i].coord[1] - (motionY.which_point - y);
+				if (!outside)
+				{
+					list_hole[motionX.which_poly].points[i].coord[0] = list_hole[motionX.which_poly].points[i].coord[0] - (motionX.which_point - x);
+					list_hole[motionY.which_poly].points[i].coord[1] = list_hole[motionY.which_poly].points[i].coord[1] - (motionY.which_point - y);
+				}
 			}
-    }
+		}
 			motionX.which_point = x;
 			motionY.which_point = y;
 			motionX.which_poly = isInside(x, y);
