@@ -530,88 +530,6 @@ void deleteAPoint(Info point_to_delete)
 	}
 }
 
-Info* isPolygonsSecant(Poly current_poly, Poly secant_poly)
-{
-	int i, j;
-	int signe1, signe2;
-	Point ac, bc, ad, bd, ca, da, cb, db;
-	int nb_points_current;
-	int nb_points_secant;
-	int nb_secant;
-	Info* secant;
-	nb_points_current = current_poly.nb_point;
-	nb_points_secant = secant_poly.nb_point;
-	nb_secant = 0;
-
-	secant = malloc (nb_points_current + nb_points_secant * sizeof (Info) );
-
-	//Again here we close our polygon
-	//Poly
-	current_poly.points[nb_points_current].coord[0] = current_poly.points[0].coord[0];
-	current_poly.points[nb_points_current].coord[1] = current_poly.points[0].coord[1];
-	current_poly.points[nb_points_current].coord[2] = 0;
-
-	secant_poly.points[nb_points_secant].coord[1] = secant_poly.points[0].coord[1];
-	secant_poly.points[nb_points_secant].coord[0] = secant_poly.points[0].coord[0];
-	secant_poly.points[nb_points_secant].coord[2] = 0;
-
-	//If we hve less than 3 points our poly isn't close yet, so no need to check if it is secant
-
-	if (nb_points_secant > 3 && nb_points_current > 3)
-	{
-		for (i = 0; i < nb_points_secant + 1; i++)
-			for (j = 0; j < nb_points_current + 1; j++)
-			{
-				ca = madeAVector(secant_poly.points[j], current_poly.points[i]);
-				da = madeAVector(secant_poly.points[j + 1], current_poly.points[i]);
-				cb = madeAVector(secant_poly.points[j], current_poly.points[i + 1]);
-				db = madeAVector(secant_poly.points[j + 1], current_poly.points[i + 1]);
-
-				if ((ca.coord[0] * cb.coord[1] - cb.coord[0] * ca.coord[1]) >= 0)
-					signe1 = 1;
-				else
-					signe1 = 0;
-
-				if ((da.coord[0] * db.coord[1] - db.coord[0] * da.coord[1]) >= 0)
-					signe2 = 1;
-				else
-					signe2 = 0;
-
-				if (signe1 != signe2)
-				{
-					ac = madeAVector(current_poly.points[i], secant_poly.points[j]);
-					ad = madeAVector(current_poly.points[i], secant_poly.points[j + 1]);
-					bc = madeAVector(current_poly.points[i + 1], secant_poly.points[j]);
-					bd = madeAVector(current_poly.points[i + 1], secant_poly.points[j + 1]);
-
-					if ((ac.coord[0] * ad.coord[1] - ad.coord[0] * ac.coord[1]) >= 0)
-						signe1 = 1;
-					else
-						signe1 = 0;
-
-					if ((bc.coord[0] * bd.coord[1] - bd.coord[0] * bc.coord[1]) >= 0)
-						signe2 = 1;
-					else
-						signe2 = 0;
-
-					if (signe1 != signe2)
-					{
-						secant[nb_secant].which_point = 
-						nb_secant++;
-					}
-				}
-			}
-	}
-	return nb_secant;
-}
-
-void mergeSecant(void)
-{
-	int test;
-	test = isPolygonsSecant(list_poly[poly_selected], list_poly[poly_selected+1]);
-	printf ("%d\n",test);
-}
-
 void initPoly(void)
 {
 	int x;
@@ -663,6 +581,38 @@ void reshapeGL(int _w, int _h)
 	glutPostRedisplay();
 }
 
+void closeThePoly (int k)
+{
+	list_poly[k].points[list_poly[k].nb_point].coord[0] = list_poly[k].points[0].coord[0];
+	list_poly[k].points[list_poly[k].nb_point].coord[1] = list_poly[k].points[0].coord[1];
+	list_poly[k].points[list_poly[k].nb_point].coord[2] = 0;
+}
+
+void theTooSimpleDrawing (int f_x, int f_y, int s_x, int s_y)
+{
+	if (f_x > s_x)
+	{
+		int tmp = f_x;
+		f_x = s_x;
+		s_x = tmp;
+		tmp = f_y;
+		f_y = s_y;
+		s_y = tmp;
+	}
+	float y;
+	int dx = s_x - f_x;
+	int dy = s_y - f_y;
+	for (int x = f_x ; x < s_x + 1 ; x++)
+	{
+		y =(float) f_y + dy * (x - f_x) / dx;
+		printf("KOUKOU -- %d -- %f\n",x, y);
+		glBegin(GL_POINTS);
+			glVertex3f(x,y,0);
+		glEnd();
+		glutPostRedisplay();
+	}
+}
+
 /* Fonction pour afficher du texte en OpenGL */
 void glPrintText(int x, int  y, const char * text)
 {
@@ -679,130 +629,28 @@ void displayGL()
 {
   int i;
   int k;
-  char buffer[32];
   glClear(GL_COLOR_BUFFER_BIT);
 
-  glColor3f(0.4, 0.1, 0.8);
-
-  glPrintText(10, winY - 10, int_ext);
-
-
-	if (edit_mode && !add_hole_mode)
-	{
-		sprintf(buffer, "Selected Polygon : %d", poly_selected + 1);
-		glPrintText(10, winY - 55, buffer);
-		sprintf(buffer, "Number of Points : %d", list_poly[poly_selected].nb_point);
-		glPrintText(10, winY - 70, buffer);
-	}
-	if (edit_mode && add_hole_mode)
-	{
-		sprintf(buffer, "Selected Hole : %d", hole_selected + 1);
-		glPrintText(10, winY - 55, buffer);
-		sprintf(buffer, "Number of Points : %d", list_hole[hole_selected].nb_point);
-		glPrintText(10, winY - 70, buffer);
-	}
-
-	if (edit_mode && !add_hole_mode)
-		glPrintText(10, winY - 40, "Poly Edition Mode");
-	if (edit_mode && add_hole_mode)
-		glPrintText(10, winY - 40, "Hole Edition Mode");
 
 	for (k = 0; k < nb_poly; k++)
 	{
-		Poly current_poly = list_poly[k];
-		Poly current_hole = list_hole[k];
-
-		if ( isASecant(current_poly) > 0 && k == poly_selected && edit_mode )
+		closeThePoly(k);
+		for (i = 0; i < list_poly[k].nb_point ; i++)
 		{
-      sprintf(buffer, "There are %d secant in this Poly", isASecant(current_poly));
-      glPrintText(10, winY - 25, buffer);
+			printf("K , %d , %d\n", list_poly[k].points[i].coord[0], list_poly[k].points[i + 1].coord[0]);
+			if (list_poly[k].nb_point >= 2)
+			{
+				glPointSize(10);
+  			glColor3f(0.4, 0.5, 0.7);
+				glBegin(GL_POINTS);
+					glVertex3f(list_poly[k].points[i].coord[0], list_poly[k].points[i].coord[1],0);
+				glEnd();
+				glPointSize(1);
+  			glColor3f(0.9, 0.2, 0.2);
+				theTooSimpleDrawing(list_poly[k].points[i].coord[0], list_poly[k].points[i].coord[1], list_poly[k].points[i + 1].coord[0], list_poly[k].points[i + 1].coord[1]);
+			}
+			printf("D\n");
 		}
-		if (isASecant(current_hole) > 0 && k == poly_selected && edit_mode)
-		{
-      sprintf(buffer, "There are %d secant in this Poly's hole", isASecant(current_hole));
-      glPrintText(200, winY - 25, buffer);
-		}
-		if (coord_mode && edit_mode)
-		{
-			glColor3f(0.4, 0.1, 0.8);
-			for (i = 0; i < current_poly.nb_point; ++i)
-			{
-				sprintf(buffer, "[%02d] (%3d, %3d)", i, current_poly.points[i].coord[0], current_poly.points[i].coord[1]);
-				glPrintText(current_poly.points[i].coord[0], current_poly.points[i].coord[1] + 6, buffer);
-			}
-			for (i = 0; i < current_hole.nb_point; ++i)
-			{
-				sprintf(buffer, "[%02d] (%3d, %3d)", i, current_hole.points[i].coord[0], current_hole.points[i].coord[1]);
-				glPrintText(current_hole.points[i].coord[0], current_hole.points[i].coord[1] + 6, buffer);
-			}
-		}
-		for (i = 0; i < current_poly.nb_point; i++)
-		{
-			glPointSize(8.0);
-			glBegin(GL_POINTS);
-			if (i == current_poly.insert_here && k == poly_selected && !add_hole_mode && edit_mode)
-			{
-				glColor3f(0.2, 0.5, 0.5);
-				glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
-			}
-			else if (k == poly_selected && !add_hole_mode && edit_mode)
-			{
-				glColor3f(0.9, 0.2, 0.1);
-				glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
-			}
-			else
-			{
-				glColor3f(0.1, 0.5, 0.2);
-				glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
-			}
-			glEnd();
-		}
-
-		for (i = 0; i < current_hole.nb_point; i++)
-		{
-			glPointSize(8.0);
-			glBegin(GL_POINTS);
-			if (i == current_hole.insert_here && k == hole_selected && add_hole_mode && edit_mode)
-			{
-				glColor3f(0.2, 0.5, 0.5);
-				glVertex3f(current_hole.points[i].coord[0], current_hole.points[i].coord[1], current_hole.points[i].coord[2]);
-			}
-			else if (k == hole_selected && add_hole_mode && edit_mode)
-			{
-				glColor3f(0.9, 0.2, 0.1);
-				glVertex3f(current_hole.points[i].coord[0], current_hole.points[i].coord[1], current_hole.points[i].coord[2]);
-			}
-			else
-			{
-				glColor3f(0.1, 0.5, 0.2);
-				glVertex3f(current_hole.points[i].coord[0], current_hole.points[i].coord[1], current_hole.points[i].coord[2]);
-			}
-			glEnd();
-		}
-
-		glPointSize(1.0);
-		if (k == poly_selected && !add_hole_mode && edit_mode)
-			glColor3f(0.2, 0.2, 0.8);
-		else
-			glColor3f(0.2,0.2,0.2);
-		glBegin(display_mode);
-		for (i = 0; i < current_poly.nb_point; i++)
-		{
-			glVertex3f(current_poly.points[i].coord[0], current_poly.points[i].coord[1], current_poly.points[i].coord[2]);
-		}
-		glEnd();
-
-		glPointSize(1.0);
-		if (k == hole_selected && add_hole_mode && edit_mode)
-			glColor3f(0.2, 0.2, 0.8);
-		else
-			glColor3f(0.2,0.2,0.2);
-		glBegin(display_mode);
-		for (i = 0; i < current_hole.nb_point; i++)
-		{
-			glVertex3f(current_hole.points[i].coord[0], current_hole.points[i].coord[1], current_hole.points[i].coord[2]);
-		}
-		glEnd();
 	}
   glutSwapBuffers();
 }
@@ -854,8 +702,7 @@ void mouseGL(int button, int state, int x, int y)
 		{
       deleteAPoint(nearestPoint(x,y));
     }
-		mergeSecant();
-	}
+  }
   if (state ==  GLUT_DOWN && button == GLUT_MIDDLE_BUTTON){
     Info is_a_point_there = nearestPoint(x, y);
 		if (is_a_point_there.which_poly != -1 && edit_mode)
@@ -1044,9 +891,6 @@ void keyboardGL(unsigned char k, int _x, int _y)
           coord_mode = !coord_mode;
           break;
 
-    case 'a' :
-          mergeSecant();
-          break;
 
     case 'h' :
           add_hole_mode = !add_hole_mode;
