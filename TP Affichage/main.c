@@ -603,13 +603,13 @@ void theTooSimpleDrawing (int x1, int y1, int x2, int y2)
 	{
 		if (dx > 0)
 		{
-		float a = (float) dy / dx;
-		while (x < x2)
-		{
-			x++;
-			y += a;
-			glVertex2i(x, (int)(y + 0.5));
-		}
+			float a = (float) dy / dx;
+			while (x < x2)
+			{
+				x++;
+				y += a;
+				glVertex2i(x, (int)(y + 0.5));
+			}
 		}
 		else
 		{
@@ -646,36 +646,88 @@ void theTooSimpleDrawing (int x1, int y1, int x2, int y2)
 		}
 	}
 	glEnd();
-glutPostRedisplay();
 }
 
-/* Fonction pour afficher du texte en OpenGL */
-void glPrintText(int x, int  y, const char * text)
+void bresenham (int x1, int y1, int x2, int y2)
 {
-	int i;
+	int x = x1;
+	int y = y1;
 
-	glRasterPos2i(x, y);
+	int dx = x2 - x1;
+	int dy = y2 - y1;
 
-	for(i = 0; i < (int)strlen(text); ++i)
-		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
-}
+	int D = 2 * (y2-y1) - (x2 - x1);
 
-/* Callback OpenGL */
-void displayGL()
-{
-  int i;
-  int k;
-  glClear(GL_COLOR_BUFFER_BIT);
-
-
-	for (k = 0; k < nb_poly; k++)
+	int inc1 = 2 * (y2-y1);
+	int inc2 = 2 * (y2 - y1) - 2 * (x2 - x1);
+	glBegin(GL_POINTS);
+	glVertex2i(x, y1);
+	if (pow(dx, 2) > pow(dy, 2))
 	{
-		closeThePoly(k);
-		for (i = 0; i < list_poly[k].nb_point ; i++)
+		if (dx > 0 && dy > 0)
 		{
-				glPointSize(5);
-  			glColor3f(0.4, 0.5, 0.7);
-				glBegin(GL_POINTS);
+			while (x < x2)
+			{
+				x++;
+				if (D >= 0)
+				{
+					y++;
+					D += inc2;
+				}
+				else
+				{
+					D += inc1;
+				}
+				glVertex2i(x, y);
+			}
+		}
+		if (dx < 0 && dy > 0)
+		{
+			while (x > x2)
+			{
+				x--;
+				if (D < 0)
+				{
+					y++;
+					D += inc2;
+				}
+				else
+				{
+					D += inc1;
+				}
+				glVertex2i(x, y);
+			}
+		}
+	}
+	glEnd();
+}
+
+		/* Fonction pour afficher du texte en OpenGL */
+		void glPrintText(int x, int y, const char *text)
+		{
+			int i;
+
+			glRasterPos2i(x, y);
+
+			for (i = 0; i < (int)strlen(text); ++i)
+				glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
+		}
+
+		/* Callback OpenGL */
+		void displayGL()
+		{
+			int i;
+			int k;
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			for (k = 0; k < nb_poly; k++)
+			{
+				closeThePoly(k);
+				for (i = 0; i < list_poly[k].nb_point; i++)
+				{
+					glPointSize(5);
+					glColor3f(0.4, 0.5, 0.7);
+					glBegin(GL_POINTS);
 					glVertex3f(list_poly[k].points[i].coord[0], list_poly[k].points[i].coord[1],0);
 					glVertex3f(list_poly[k].points[i+1].coord[0], list_poly[k].points[i+1].coord[1],0);
 				glEnd();
@@ -683,7 +735,7 @@ void displayGL()
 			{
 				glPointSize(1);
   			glColor3f(0.9, 0.2, 0.2);
-				theTooSimpleDrawing(list_poly[k].points[i].coord[0], list_poly[k].points[i].coord[1], list_poly[k].points[i + 1].coord[0], list_poly[k].points[i + 1].coord[1]);
+				bresenham(list_poly[k].points[i].coord[0], list_poly[k].points[i].coord[1], list_poly[k].points[i + 1].coord[0], list_poly[k].points[i + 1].coord[1]);
 			}
 		}
 	}
