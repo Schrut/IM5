@@ -588,29 +588,41 @@ void closeThePoly (int k)
 	list_poly[k].points[list_poly[k].nb_point].coord[2] = 0;
 }
 
-void theTooSimpleDrawing (int f_x, int f_y, int s_x, int s_y)
+void theTooSimpleDrawing (int x1, int y1, int x2, int y2)
 {
-	if (f_x > s_x)
+	int dx = x2 - x1;
+	int dy = y2 - y1;
+		
+	float x = x1;
+	float y = y1;
+
+	glBegin(GL_POINTS);
+	glVertex2i(x,y1);
+
+	if (pow(dx, 2) > pow(dy, 2))
 	{
-		int tmp = f_x;
-		f_x = s_x;
-		s_x = tmp;
-		tmp = f_y;
-		f_y = s_y;
-		s_y = tmp;
+		printf("A");
+		float a = (float) dy / dx;
+		while (x < x2)
+		{
+			x++;
+			y += a;
+			glVertex2i(x, (int)(y + 0.5));
+		}
 	}
-	float y;
-	int dx = s_x - f_x;
-	int dy = s_y - f_y;
-	for (int x = f_x ; x < s_x + 1 ; x++)
+	else 
 	{
-		y =(float) f_y + dy * (x - f_x) / dx;
-		printf("KOUKOU -- %d -- %f\n",x, y);
-		glBegin(GL_POINTS);
-			glVertex3f(x,y,0);
-		glEnd();
-		glutPostRedisplay();
+		printf("B");
+		float a = (float)dx / dy;
+		while (y < y2)
+		{
+			y++;
+			x += a;
+			glVertex2i((int)(x + 0.5),y);
+		}
 	}
+	glEnd();
+glutPostRedisplay();
 }
 
 /* Fonction pour afficher du texte en OpenGL */
@@ -637,20 +649,19 @@ void displayGL()
 		closeThePoly(k);
 		for (i = 0; i < list_poly[k].nb_point ; i++)
 		{
-			printf("K , %d , %d\n", list_poly[k].points[i].coord[0], list_poly[k].points[i + 1].coord[0]);
-			if (list_poly[k].nb_point >= 2)
-			{
-				glPointSize(10);
+				glPointSize(5);
   			glColor3f(0.4, 0.5, 0.7);
 				glBegin(GL_POINTS);
 					glVertex3f(list_poly[k].points[i].coord[0], list_poly[k].points[i].coord[1],0);
 				glEnd();
+			if (list_poly[k].nb_point > 1)
+			{
 				glPointSize(1);
   			glColor3f(0.9, 0.2, 0.2);
 				theTooSimpleDrawing(list_poly[k].points[i].coord[0], list_poly[k].points[i].coord[1], list_poly[k].points[i + 1].coord[0], list_poly[k].points[i + 1].coord[1]);
 			}
-			printf("D\n");
 		}
+				printf("\n");
 	}
   glutSwapBuffers();
 }
