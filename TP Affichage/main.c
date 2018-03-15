@@ -590,9 +590,16 @@ void closeThePoly (int k)
 
 void theTooSimpleDrawing (int x1, int y1, int x2, int y2)
 {
+	if (x1 > x2)
+	{
+		printf("D");
+		theTooSimpleDrawing(x2, y2, x1, y1);
+		return;
+	}
 	int dx = x2 - x1;
 	int dy = y2 - y1;
-		
+
+	printf("%d --- %d",dx,dy);
 	float x = x1;
 	float y = y1;
 
@@ -617,7 +624,8 @@ void theTooSimpleDrawing (int x1, int y1, int x2, int y2)
 		while (y < y2)
 		{
 			y++;
-			x += a;
+			x -= a;
+			printf("%f\n",x);
 			glVertex2i((int)(x + 0.5),y);
 		}
 	}
@@ -647,7 +655,7 @@ void displayGL()
 	for (k = 0; k < nb_poly; k++)
 	{
 		closeThePoly(k);
-		for (i = 0; i < list_poly[k].nb_point ; i++)
+		for (i = 0; i < list_poly[k].nb_point -1 ; i++)
 		{
 				glPointSize(5);
   			glColor3f(0.4, 0.5, 0.7);
