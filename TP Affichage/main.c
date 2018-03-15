@@ -590,11 +590,6 @@ void closeThePoly (int k)
 
 void theTooSimpleDrawing (int x1, int y1, int x2, int y2)
 {
-	if (x1 > x2)
-	{
-		theTooSimpleDrawing(x2, y2, x1, y1);
-		return;
-	}
 	int dx = x2 - x1;
 	int dy = y2 - y1;
 
