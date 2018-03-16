@@ -93,8 +93,8 @@ int isASecant(Poly current_poly)
 	//If we hve less than 3 points our poly isn't close yet, so no need to check if it is secant
 	if (nb_points > 3)
 	{
-		for (i = 0; i < nb_points / 2 + 1; i++)
-			for (j = nb_points; j > nb_points / 2 - 1; j--)
+		for (i = 0; i < nb_points / 2 ; i++)
+			for (j = nb_points ; j > nb_points / 2 - 1; j--)
 			{
 				ca = madeAVector(current_poly.points[j], current_poly.points[i]);
 				da = madeAVector(current_poly.points[j - 1], current_poly.points[i]);
@@ -530,7 +530,6 @@ void deleteAPoint(Info point_to_delete)
 	}
 }
 
-Info isPolygonSecant ()
 
 void initPoly(void)
 {
@@ -963,9 +962,6 @@ void keyboardGL(unsigned char k, int _x, int _y)
           coord_mode = !coord_mode;
           break;
 
-    case 'a' :
-          mergeSecant();
-          break;
 
     case 'h' :
           add_hole_mode = !add_hole_mode;

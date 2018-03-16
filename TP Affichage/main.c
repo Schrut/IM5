@@ -650,68 +650,189 @@ void theTooSimpleDrawing (int x1, int y1, int x2, int y2)
 
 void bresenham (int x1, int y1, int x2, int y2)
 {
-	int x = x1;
-	int y = y1;
-
 	int dx = x2 - x1;
 	int dy = y2 - y1;
+	
 
-	int D = 2 * (y2-y1) - (x2 - x1);
+	int e = dx;
 
-	int inc1 = 2 * (y2-y1);
-	int inc2 = 2 * (y2 - y1) - 2 * (x2 - x1);
-	glBegin(GL_POINTS);
-	glVertex2i(x, y1);
-	if (pow(dx, 2) > pow(dy, 2))
+	dx *= 2;
+	dy *= 2;
+	if (x1 < x2)
 	{
-		if (dx > 0 && dy > 0)
+		if (pow(dx, 2) > pow(dy, 2))
 		{
-			while (x < x2)
+			if (y1 < y2)
 			{
-				x++;
-				if (D >= 0)
+				glBegin(GL_POINTS);
+				while (x1 < x2)
 				{
-					y++;
-					D += inc2;
+					x1++;
+					glVertex2i(x1,y1);
+					e -= dy;
+					if (e < 0)
+					{
+						y1++;
+						e += dx;
+					}
 				}
-				else
+				glEnd();
+			}
+			else
+			{
+				glBegin(GL_POINTS);
+				while (x1 < x2)
 				{
-					D += inc1;
+					x1++;
+					glVertex2i(x1, y1);
+					e += dy;
+					if (e < 0)
+					{
+						y1--;
+						e += dx;
+					}
 				}
-				glVertex2i(x, y);
+				glEnd();
 			}
 		}
-		if (dx < 0 && dy > 0)
+		else
 		{
-			while (x > x2)
+			if (y1 < y2)
 			{
-				x--;
-				if (D < 0)
+				e = dy;
+				glBegin(GL_POINTS);
+				while (y1 < y2)
 				{
-					y++;
-					D += inc2;
+					y1++;
+					glVertex2i(x1, y1);
+					e -= dx;
+					if (e < 0)
+					{
+						x1++;
+						e += dy;
+					}
 				}
-				else
+				glEnd();
+			}
+			else
+			{
+				e = dy;
+				glBegin(GL_POINTS);
+				while (y1 > y2)
 				{
-					D += inc1;
+					y1--;
+					glVertex2i(x1, y1);
+					e += dx;
+					if (e > 0)
+					{
+						x1++;
+						e += dy;
+					}
 				}
-				glVertex2i(x, y);
+				glEnd();
 			}
 		}
 	}
-	glEnd();
 }
 
-		/* Fonction pour afficher du texte en OpenGL */
-		void glPrintText(int x, int y, const char *text)
+void interpolation (int x1, int y1, int x2, int y2)
+{
+	int dx = x2 - x1;
+	int dy = y2 - y1;
+	
+
+	int e = dx;
+
+	dx *= 2;
+	dy *= 2;
+	if (x1 < x2)
+	{
+		if (pow(dx, 2) > pow(dy, 2))
 		{
-			int i;
-
-			glRasterPos2i(x, y);
-
-			for (i = 0; i < (int)strlen(text); ++i)
-				glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
+			if (y1 < y2)
+			{
+				glBegin(GL_POINTS);
+				while (x1 < x2)
+				{
+					x1++;
+					glVertex2i(x1,y1);
+					e -= dy;
+					if (e < 0)
+					{
+						y1++;
+						e += dx;
+					}
+				}
+				glEnd();
+			}
+			else
+			{
+				glBegin(GL_POINTS);
+				while (x1 < x2)
+				{
+					x1++;
+					glVertex2i(x1, y1);
+					e += dy;
+					if (e < 0)
+					{
+						y1--;
+						e += dx;
+					}
+				}
+				glEnd();
+			}
 		}
+		else
+		{
+			if (y1 < y2)
+			{
+				e = dy;
+				glBegin(GL_POINTS);
+				while (y1 < y2)
+				{
+					y1++;
+					glVertex2i(x1, y1);
+					e -= dx;
+					if (e < 0)
+					{
+						x1++;
+						e += dy;
+					}
+				}
+				glEnd();
+			}
+			else
+			{
+				e = dy;
+				glBegin(GL_POINTS);
+				while (y1 > y2)
+				{
+					y1--;
+					glVertex2i(x1, y1);
+					e += dx;
+					if (e > 0)
+					{
+						x1++;
+						e += dy;
+					}
+				}
+				glEnd();
+			}
+		}
+	}
+}
+
+
+/* Fonction pour afficher du texte en OpenGL */
+void glPrintText(int x, int y, const char *text)
+{
+	int i;
+
+	glRasterPos2i(x, y);
+
+	for (i = 0; i < (int)strlen(text); ++i)
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
+}
 
 		/* Callback OpenGL */
 		void displayGL()
@@ -735,7 +856,18 @@ void bresenham (int x1, int y1, int x2, int y2)
 			{
 				glPointSize(1);
   			glColor3f(0.9, 0.2, 0.2);
-				bresenham(list_poly[k].points[i].coord[0], list_poly[k].points[i].coord[1], list_poly[k].points[i + 1].coord[0], list_poly[k].points[i + 1].coord[1]);
+				switch (display_mode)
+				{
+					case 1 :
+						bresenham(list_poly[k].points[i].coord[0], list_poly[k].points[i].coord[1], list_poly[k].points[i + 1].coord[0], list_poly[k].points[i + 1].coord[1]);
+						break;
+					case 2 : 
+						theTooSimpleDrawing(list_poly[k].points[i].coord[0], list_poly[k].points[i].coord[1], list_poly[k].points[i + 1].coord[0], list_poly[k].points[i + 1].coord[1]);
+						break;
+					case 3 : 
+						interpolation(list_poly[k].points[i].coord[0], list_poly[k].points[i].coord[1], list_poly[k].points[i + 1].coord[0], list_poly[k].points[i + 1].coord[1]);
+						break;
+				}
 			}
 		}
 	}
@@ -950,19 +1082,15 @@ void keyboardGL(unsigned char k, int _x, int _y)
           break;
 
 		case '1':
-			display_mode = GL_POINTS;
+			display_mode = 1;
 			break;
 
 		case '2':
-			display_mode = GL_LINES;
+			display_mode = 2;
 			break;
 
 		case '3':
-			display_mode = GL_LINE_LOOP;
-			break;
-
-		case '4':
-			display_mode = GL_LINE_STRIP;
+			display_mode = 3;
 			break;
 
 		case 'm' :
@@ -977,6 +1105,7 @@ void keyboardGL(unsigned char k, int _x, int _y)
     case 'c' :
           coord_mode = !coord_mode;
           break;
+
 
 
     case 'h' :
