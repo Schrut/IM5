@@ -530,86 +530,84 @@ void deleteAPoint(Info point_to_delete)
 	}
 }
 
-Info* isPolygonsSecant(Poly current_poly, Poly secant_poly)
+int isPointsSecant(Point f_pol_f_point, Point f_pol_s_point, Point s_pol_f_point, Point s_pol_s_point)
 {
-	int i, j;
 	int signe1, signe2;
 	Point ac, bc, ad, bd, ca, da, cb, db;
-	int nb_points_current;
-	int nb_points_secant;
-	int nb_secant;
-	Info* secant;
-	nb_points_current = current_poly.nb_point;
-	nb_points_secant = secant_poly.nb_point;
-	nb_secant = 0;
 
-	secant = malloc (nb_points_current + nb_points_secant * sizeof (Info) );
+	ca = madeAVector(s_pol_f_point, f_pol_f_point);
+	da = madeAVector(s_pol_s_point, f_pol_f_point);
+	cb = madeAVector(s_pol_f_point, f_pol_s_point);
+	db = madeAVector(s_pol_s_point, f_pol_s_point);
 
-	//Again here we close our polygon
-	//Poly
-	current_poly.points[nb_points_current].coord[0] = current_poly.points[0].coord[0];
-	current_poly.points[nb_points_current].coord[1] = current_poly.points[0].coord[1];
-	current_poly.points[nb_points_current].coord[2] = 0;
+	if ((ca.coord[0] * cb.coord[1] - cb.coord[0] * ca.coord[1]) >= 0)
+		signe1 = 1;
+	else
+		signe1 = 0;
 
-	secant_poly.points[nb_points_secant].coord[1] = secant_poly.points[0].coord[1];
-	secant_poly.points[nb_points_secant].coord[0] = secant_poly.points[0].coord[0];
-	secant_poly.points[nb_points_secant].coord[2] = 0;
+	if ((da.coord[0] * db.coord[1] - db.coord[0] * da.coord[1]) >= 0)
+		signe2 = 1;
+	else
+		signe2 = 0;
 
-	//If we hve less than 3 points our poly isn't close yet, so no need to check if it is secant
-
-	if (nb_points_secant > 3 && nb_points_current > 3)
+	if (signe1 != signe2)
 	{
-		for (i = 0; i < nb_points_secant + 1; i++)
-			for (j = 0; j < nb_points_current + 1; j++)
-			{
-				ca = madeAVector(secant_poly.points[j], current_poly.points[i]);
-				da = madeAVector(secant_poly.points[j + 1], current_poly.points[i]);
-				cb = madeAVector(secant_poly.points[j], current_poly.points[i + 1]);
-				db = madeAVector(secant_poly.points[j + 1], current_poly.points[i + 1]);
+		ac = madeAVector(f_pol_f_point, s_pol_f_point);
+		ad = madeAVector(f_pol_f_point, s_pol_s_point);
+		bc = madeAVector(f_pol_s_point, s_pol_f_point);
+		bd = madeAVector(f_pol_s_point, s_pol_s_point);
 
-				if ((ca.coord[0] * cb.coord[1] - cb.coord[0] * ca.coord[1]) >= 0)
-					signe1 = 1;
-				else
-					signe1 = 0;
+		if ((ac.coord[0] * ad.coord[1] - ad.coord[0] * ac.coord[1]) >= 0)
+			signe1 = 1;
+		else
+			signe1 = 0;
 
-				if ((da.coord[0] * db.coord[1] - db.coord[0] * da.coord[1]) >= 0)
-					signe2 = 1;
-				else
-					signe2 = 0;
+		if ((bc.coord[0] * bd.coord[1] - bd.coord[0] * bc.coord[1]) >= 0)
+			signe2 = 1;
+		else
+			signe2 = 0;
 
-				if (signe1 != signe2)
-				{
-					ac = madeAVector(current_poly.points[i], secant_poly.points[j]);
-					ad = madeAVector(current_poly.points[i], secant_poly.points[j + 1]);
-					bc = madeAVector(current_poly.points[i + 1], secant_poly.points[j]);
-					bd = madeAVector(current_poly.points[i + 1], secant_poly.points[j + 1]);
-
-					if ((ac.coord[0] * ad.coord[1] - ad.coord[0] * ac.coord[1]) >= 0)
-						signe1 = 1;
-					else
-						signe1 = 0;
-
-					if ((bc.coord[0] * bd.coord[1] - bd.coord[0] * bc.coord[1]) >= 0)
-						signe2 = 1;
-					else
-						signe2 = 0;
-
-					if (signe1 != signe2)
-					{
-						secant[nb_secant].which_point = 
-						nb_secant++;
-					}
-				}
-			}
+		if (signe1 != signe2)
+		{
+			return 1;
+		}
 	}
-	return nb_secant;
+	return 0;
+}
+
+Point whereitllCross(Point f_pol_f_point, Point f_pol_s_point, Point s_pol_f_point, Point s_pol_s_point)
+{
+	double a, b, c, d;
+	int x, y;
+
+	a = (double) (f_pol_s_point.coord[1] - f_pol_f_point.coord[1]) / (f_pol_s_point.coord[0] - f_pol_f_point.coord[0]);
+	b = (double) f_pol_f_point.coord[1] - (f_pol_f_point.coord[0] * a);
+
+	c = (double) (s_pol_s_point.coord[1] - s_pol_f_point.coord[1]) / (s_pol_s_point.coord[0] - s_pol_f_point.coord[0]);
+	d = (double) s_pol_f_point.coord[1] - (s_pol_f_point.coord[0] * c);
+
+	x = (int) (d-b) / (a-c);
+	y = (int)a * x + b;
+
+	Point new;
+	new.coord[0] = x;
+	new.coord[1] = y;
+	new.coord[3] = 0;
+
+	return new;
 }
 
 void mergeSecant(void)
 {
 	int test;
-	test = isPolygonsSecant(list_poly[poly_selected], list_poly[poly_selected+1]);
-	printf ("%d\n",test);
+	Point my;
+	test = isPointsSecant(list_poly[poly_selected].points[0], list_poly[poly_selected].points[1], list_poly[poly_selected + 1].points[0], list_poly[poly_selected + 1].points[1]);
+	if (test)
+	{
+		my = whereitllCross(list_poly[poly_selected].points[0], list_poly[poly_selected].points[1], list_poly[poly_selected + 1].points[0], list_poly[poly_selected + 1].points[1]);
+		printf("%d ---- %d \n", my.coord[0], my.coord[1]);
+		addAPoint(my.coord[0], my.coord[1], 0);
+	}
 }
 
 void initPoly(void)
@@ -854,7 +852,6 @@ void mouseGL(int button, int state, int x, int y)
 		{
       deleteAPoint(nearestPoint(x,y));
     }
-		mergeSecant();
 	}
   if (state ==  GLUT_DOWN && button == GLUT_MIDDLE_BUTTON){
     Info is_a_point_there = nearestPoint(x, y);
