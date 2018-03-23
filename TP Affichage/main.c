@@ -744,7 +744,79 @@ void bresenham (int x1, int y1, int x2, int y2)
 	}
 }
 
-void interpolation (int x1, int y1, int x2, int y2)
+void interpolation(int x1, int y1, int x2, int y2)
+{
+	int delta, inc1, inc2, x, y, tmp, tmp1, tmp2, pente;
+
+	/* je prend le points le plus a gauche */
+
+	if (x1 > x2)
+	{
+		tmp = x1;
+		x1 = x2;
+		x2 = tmp;
+
+		tmp = y1;
+		y1 = y2;
+		y2 = tmp;
+	}
+
+	/* je met le repere a 0*/
+	tmp1 = x1;
+	tmp2 = y1;
+
+	x1 = 0;
+	y1 = 0;
+
+	x2 = x2 - tmp1;
+	y2 = y2 - tmp2;
+
+	x = x1;
+	y = y1;
+
+	/* calcul de la pente */
+
+	if (x2 != 0)
+		pente = (y2 - y1) / (x2 - x1);
+	else
+		pente = y2;
+
+	delta = 2 * abs(y2) - 2 * (abs(pente) + 1) * x2;
+	inc1 = 2 * abs(y2) - 2 * abs(pente) * x2;
+	inc2 = delta;
+
+	while (x < x2)
+	{
+
+		if (y2 < 0)
+		{
+			glBegin(GL_POINTS);
+			glVertex3i((x + tmp1), abs(-y + tmp2), 0);
+			glEnd();
+		}
+		else
+		{
+			glBegin(GL_POINTS);
+			glVertex3i(x + tmp1, y + tmp2, 0);
+			glEnd();
+		}
+
+		if (delta < 0)
+		{
+			delta += inc1;
+			y += abs(pente);
+		}
+		else
+		{
+			delta += inc2;
+			y += abs(pente) + 1;
+		}
+		x++;
+	}
+	glPointSize(3);
+}
+
+void inter (int x1, int y1, int x2, int y2)
 {
 	int dx = x2 - x1;
 	int dy = y2 - y1;
