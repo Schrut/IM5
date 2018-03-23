@@ -25,6 +25,7 @@ typedef struct Info
 typedef struct Point
 {
 	int coord[3];
+	int active;
 } Point;
 
 //Polygone Structure
@@ -39,6 +40,7 @@ typedef struct Poly
 Poly* list_poly;
 Poly* list_hole;
 
+Info* Yposition;
 Info motion;
 Info motionX;
 Info motionY;
@@ -61,7 +63,8 @@ int display_mode;
 int xpos;
 int ypos;
 int mouse_is_inside;
-int* transition;
+int nbYposition;
+int *transition;
 const char* int_ext;
 
 /*Transforme deux points donnés en un vecteurs*/
@@ -480,6 +483,7 @@ void addAPoint(int x, int y, int is_hole)
 		list_hole[hole_selected].points[list_hole[hole_selected].insert_here].coord[0] = x;
 		list_hole[hole_selected].points[list_hole[hole_selected].insert_here].coord[1] = y;
 		list_hole[hole_selected].points[list_hole[hole_selected].insert_here].coord[2] = 0;
+		list_hole[hole_selected].points[list_hole[hole_selected].insert_here].active = 0;
 		list_hole[hole_selected].nb_point++;
 	}
 	else
@@ -500,7 +504,12 @@ void addAPoint(int x, int y, int is_hole)
 		list_poly[poly_selected].points[list_poly[poly_selected].insert_here].coord[0] = x;
 		list_poly[poly_selected].points[list_poly[poly_selected].insert_here].coord[1] = y;
 		list_poly[poly_selected].points[list_poly[poly_selected].insert_here].coord[2] = 0;
+		list_poly[poly_selected].points[list_poly[poly_selected].insert_here].active = 0;
 		list_poly[poly_selected].nb_point++;
+
+		Yposition[nbYposition].which_point = y;
+		Yposition[nbYposition].which_poly = list_poly[poly_selected].nb_point;
+		nbYposition++;
 	}
 }
 
@@ -739,7 +748,6 @@ void interpolation (int x1, int y1, int x2, int y2)
 {
 	int dx = x2 - x1;
 	int dy = y2 - y1;
-	
 
 	int e = dx;
 
@@ -751,11 +759,10 @@ void interpolation (int x1, int y1, int x2, int y2)
 		{
 			if (y1 < y2)
 			{
-				glBegin(GL_POINTS);
 				while (x1 < x2)
 				{
 					x1++;
-					glVertex2i(x1,y1);
+					glVertex2i(x1, y1);
 					e -= dy;
 					if (e < 0)
 					{
@@ -822,6 +829,53 @@ void interpolation (int x1, int y1, int x2, int y2)
 	}
 }
 
+void shakesort(int iMax)
+{
+	int i, k, temp, z = 1;
+	int flag = 0;
+	for (k = iMax - 1; k >= 0; k--)
+	{
+		for (i = 1; i <= k; i++)
+		{
+			//passage vers le haut
+			if (Yposition[i].which_point > Yposition[i + 1].which_point)
+			{
+				temp = Yposition[i].which_point;
+				Yposition[i].which_point = Yposition[i + 1].which_point;
+				Yposition[i + 1].which_point = temp;
+
+				temp = Yposition[i].which_poly;
+				Yposition[i].which_poly = Yposition[i + 1].which_poly;
+				Yposition[i + 1].which_poly = temp;
+				flag = 1;
+			}
+		}
+		for (i = k; i >= z; i--)
+		{
+			//Passage vers le bas
+			if (Yposition[i].which_point < Yposition[i - 1].which_point)
+			{
+				temp = Yposition[i].which_point;
+				Yposition[i].which_point = Yposition[i - 1].which_point;
+				Yposition[i - 1].which_point = temp;
+
+				temp = Yposition[i].which_poly;
+				Yposition[i].which_poly = Yposition[i - 1].which_poly;
+				Yposition[i - 1].which_poly = temp;
+				flag = 1;
+			}
+		}
+		z++;
+		if (flag == 0)
+			break;
+		flag = 0;
+	}
+}
+
+void remplissage()
+{
+	
+}
 
 /* Fonction pour afficher du texte en OpenGL */
 void glPrintText(int x, int y, const char *text)
@@ -1037,7 +1091,8 @@ void init()
   motion_hole     = -1;
   poly_selected   = 0;
   hole_selected   = 0;
-	motionX.which_point =	-1;
+	nbYposition 		= 0;
+	motionX.which_point = -1;
 	motionX.which_poly  =	-2;
 	motionY.which_poly  =	-1;
 	motionY.which_point =	-1;
@@ -1057,6 +1112,7 @@ void init()
 
   initPoly();
   transition = malloc( (nb_point_max + 1) * sizeof(int) );
+	Yposition = malloc((nb_point_max) * sizeof(Info));
 	usage();
 }
 

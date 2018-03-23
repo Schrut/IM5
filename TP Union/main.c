@@ -144,7 +144,6 @@ int delit_cas(int i, int x, int y, int option, Poly working_poly)
 
 	if (option)
 	{
-		//Poly working_poly = list_poly[which_poly];
 		double a, b, _x;
 
 		if (working_poly.points[i + 1].coord[1] == working_poly.points[i].coord[1])
@@ -575,26 +574,19 @@ int isPointsSecant(Point f_pol_f_point, Point f_pol_s_point, Point s_pol_f_point
 	return 0;
 }
 
-Point whereitllCross(Point f_pol_f_point, Point f_pol_s_point, Point s_pol_f_point, Point s_pol_s_point)
+Point whereitllCross(Point a, Point b, Point c, Point d)
 {
-	double a, b, c, d;
-	int x, y;
+	double m = (b.coord[1] - a.coord[1]) / (b.coord[0] - a.coord[0]);
+	double p = a.coord[1] - m * a.coord[0];
 
-	a = (double) (f_pol_s_point.coord[1] - f_pol_f_point.coord[1]) / (f_pol_s_point.coord[0] - f_pol_f_point.coord[0]);
-	b = (double) f_pol_f_point.coord[1] - (f_pol_f_point.coord[0] * a);
+	double v = (d.coord[1] - c.coord[1]) / (d.coord[0] - c.coord[0]);
+	double w = c.coord[1] - v * c.coord[0];
 
-	c = (double) (s_pol_s_point.coord[1] - s_pol_f_point.coord[1]) / (s_pol_s_point.coord[0] - s_pol_f_point.coord[0]);
-	d = (double) s_pol_f_point.coord[1] - (s_pol_f_point.coord[0] * c);
-
-	x = (int) (d-b) / (a-c);
-	y = (int)a * x + b;
-
-	Point new;
-	new.coord[0] = x;
-	new.coord[1] = y;
-	new.coord[3] = 0;
-
-	return new;
+	Point intersect;
+	intersect.coord[0] = (w - p) / (m - v);
+	intersect.coord[1] = (m*w - v*p) / (m - v);
+	intersect.coord[2] = 0;
+	return intersect;
 }
 
 void mergeSecant(void)
