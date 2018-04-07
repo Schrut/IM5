@@ -796,7 +796,6 @@ void interpolation(int x1, int y1, int x2, int y2)
 		}
 		else
 		{
-			glBegin(GL_POINTS);
 			glVertex3i(x + tmp1, y + tmp2, 0);
 			glEnd();
 		}
