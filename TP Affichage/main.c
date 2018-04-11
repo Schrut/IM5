@@ -41,11 +41,13 @@ Poly* list_poly;
 Poly* list_hole;
 
 Info* Yposition;
+Info* segment_drawing
 Info motion;
 Info motionX;
 Info motionY;
 
 int motion_hole;
+int max_sample;
 int nb_poly;
 int nb_hole;
 int nb_hole_max;
@@ -75,6 +77,8 @@ Point madeAVector(Point A, Point B)
 	new_point.coord[1] = B.coord[1] - A.coord[1];
 	return new_point;
 }
+
+
 
 /*Is a secant in my polygon?*/
 int isASecant(Poly current_poly)
@@ -657,7 +661,7 @@ void theTooSimpleDrawing (int x1, int y1, int x2, int y2)
 	glEnd();
 }
 
-void bresenham (int x1, int y1, int x2, int y2)
+void draw_bresenham (int x1, int y1, int x2, int y2)
 {
 	int dx = x2 - x1;
 	int dy = y2 - y1;
@@ -744,11 +748,89 @@ void bresenham (int x1, int y1, int x2, int y2)
 	}
 }
 
+void compute_bresenham (int x1, int y1, int x2, int y2)
+{
+	int dx = x2 - x1;
+	int dy = y2 - y1;
+	
+
+	int e = dx;
+
+	dx *= 2;
+	dy *= 2;
+	if (x1 < x2)
+	{
+		if (pow(dx, 2) > pow(dy, 2))
+		{
+			if (y1 < y2)
+			{
+				while (x1 < x2)
+				{
+					x1++;
+					glVertex2i(x1,y1);
+					e -= dy;
+					if (e < 0)
+					{
+						y1++;
+						e += dx;
+					}
+				}
+			}
+			else
+			{
+				while (x1 < x2)
+				{
+					x1++;
+					glVertex2i(x1, y1);
+					e += dy;
+					if (e < 0)
+					{
+						y1--;
+						e += dx;
+					}
+				}
+			}
+		}
+		else
+		{
+			if (y1 < y2)
+			{
+				e = dy;
+				while (y1 < y2)
+				{
+					y1++;
+					glVertex2i(x1, y1);
+					e -= dx;
+					if (e < 0)
+					{
+						x1++;
+						e += dy;
+					}
+				}
+			}
+			else
+			{
+				e = dy;
+				while (y1 > y2)
+				{
+					y1--;
+					glVertex2i(x1, y1);
+					e += dx;
+					if (e > 0)
+					{
+						x1++;
+						e += dy;
+					}
+				}
+			}
+		}
+	}
+}
+
 void interpolation(int x1, int y1, int x2, int y2)
 {
 	int delta, inc1, inc2, x, y, tmp, tmp1, tmp2, pente;
 
-	/* je prend le points le plus a gauche */
 
 	if (x1 > x2)
 	{
@@ -813,91 +895,6 @@ void interpolation(int x1, int y1, int x2, int y2)
 		x++;
 	}
 	glPointSize(3);
-}
-
-void inter (int x1, int y1, int x2, int y2)
-{
-	int dx = x2 - x1;
-	int dy = y2 - y1;
-
-	int e = dx;
-
-	dx *= 2;
-	dy *= 2;
-	if (x1 < x2)
-	{
-		if (pow(dx, 2) > pow(dy, 2))
-		{
-			if (y1 < y2)
-			{
-				while (x1 < x2)
-				{
-					x1++;
-					glVertex2i(x1, y1);
-					e -= dy;
-					if (e < 0)
-					{
-						y1++;
-						e += dx;
-					}
-				}
-				glEnd();
-			}
-			else
-			{
-				glBegin(GL_POINTS);
-				while (x1 < x2)
-				{
-					x1++;
-					glVertex2i(x1, y1);
-					e += dy;
-					if (e < 0)
-					{
-						y1--;
-						e += dx;
-					}
-				}
-				glEnd();
-			}
-		}
-		else
-		{
-			if (y1 < y2)
-			{
-				e = dy;
-				glBegin(GL_POINTS);
-				while (y1 < y2)
-				{
-					y1++;
-					glVertex2i(x1, y1);
-					e -= dx;
-					if (e < 0)
-					{
-						x1++;
-						e += dy;
-					}
-				}
-				glEnd();
-			}
-			else
-			{
-				e = dy;
-				glBegin(GL_POINTS);
-				while (y1 > y2)
-				{
-					y1--;
-					glVertex2i(x1, y1);
-					e += dx;
-					if (e > 0)
-					{
-						x1++;
-						e += dy;
-					}
-				}
-				glEnd();
-			}
-		}
-	}
 }
 
 void shakesort(int iMax)
@@ -1156,6 +1153,7 @@ void usage()
 void init()
 {
   nb_poly					= 0;
+	max_sample			= 10;
   nb_hole					= 0;
   nb_poly_max			= 5;
   nb_hole_max			= 5;
@@ -1184,6 +1182,8 @@ void init()
   initPoly();
   transition = malloc( (nb_point_max + 1) * sizeof(int) );
 	Yposition = malloc((nb_point_max) * sizeof(Info));
+	interpolated_segment[0] = malloc ((max_sample)*sizeof(Points));
+	interpolated_segment[1] = malloc ((max_sample)*sizeof(Points));
 	usage();
 }
 
