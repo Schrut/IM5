@@ -48,6 +48,7 @@ Info motionY;
 
 int motion_hole;
 int max_sample;
+int nb_sample;
 int nb_poly;
 int nb_hole;
 int nb_hole_max;
@@ -754,7 +755,7 @@ void compute_bresenham (int x1, int y1, int x2, int y2,int i)
 	int dx = x2 - x1;
 	int dy = y2 - y1;
 	
-
+	nb_sample = 0;
 	int e = dx;
 
 	dx *= 2;
@@ -769,7 +770,8 @@ void compute_bresenham (int x1, int y1, int x2, int y2,int i)
 				{
 					x1++;
 					segment_drawing[i] = x1;
-					i+=2;
+					i += 2;
+					nb_sample++;
 					e -= dy;
 					if (e < 0)
 					{
@@ -785,6 +787,7 @@ void compute_bresenham (int x1, int y1, int x2, int y2,int i)
 					x1++;
 					segment_drawing[i] = x1;
 					i += 2;
+					nb_sample++;
 					e += dy;
 					if (e < 0)
 					{
@@ -802,12 +805,13 @@ void compute_bresenham (int x1, int y1, int x2, int y2,int i)
 				while (y1 < y2)
 				{
 					y1++;
-					segment_drawing[i] = x1;
-					i += 2;
+					nb_sample++;
 					e -= dx;
 					if (e < 0)
 					{
 						x1++;
+						segment_drawing[i] = x1;
+						i += 2;
 						e += dy;
 					}
 				}
@@ -818,12 +822,86 @@ void compute_bresenham (int x1, int y1, int x2, int y2,int i)
 				while (y1 > y2)
 				{
 					y1--;
-					segment_drawing[i] = x1;
-					i += 2;
 					e += dx;
 					if (e > 0)
 					{
 						x1++;
+						segment_drawing[i] = x1;
+						i += 2;
+						e += dy;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		if (pow(dx, 2) > pow(dy, 2))
+		{
+			if (y1 < y2)
+			{
+				while (x1 > x2)
+				{
+					x1--;
+					segment_drawing[i] = x1;
+					i += 2;
+					nb_sample++;
+					e -= dy;
+					if (e < 0)
+					{
+						y1++;
+						e += dx;
+					}
+				}
+			}
+			else
+			{
+				while (x1 > x2)
+				{
+					x1--;
+					segment_drawing[i] = x1;
+					i += 2;
+					nb_sample++;
+					e += dy;
+					if (e < 0)
+					{
+						y1--;
+						e += dx;
+					}
+				}
+			}
+		}
+		else
+		{
+			if (y1 < y2)
+			{
+				e = dy;
+				while (y1 < y2)
+				{
+					y1++;
+					nb_sample++;
+					e -= dx;
+					if (e < 0)
+					{
+						x1--;
+						segment_drawing[i] = x1;
+						i += 2;
+						e += dy;
+					}
+				}
+			}
+			else
+			{
+				e = dy;
+				while (y1 > y2)
+				{
+					y1--;
+					e += dx;
+					if (e > 0)
+					{
+						x1--;
+						segment_drawing[i] = x1;
+						i += 2;
 						e += dy;
 					}
 				}
@@ -848,7 +926,7 @@ void interpolation(int x1, int y1, int x2, int y2)
 		y2 = tmp;
 	}
 
-	/* je met le repere a 0*/
+	/* Repere a 0*/
 	tmp1 = x1;
 	tmp2 = y1;
 
@@ -926,7 +1004,7 @@ void shakesort(int iMax)
 		for (i = k; i >= z; i--)
 		{
 			//Passage vers le bas
-			if (Yposition[i].which_point < Yposition[i - 1].which_point)
+			if (Yposition[i].which_point > Yposition[i - 1].which_point)
 			{
 				temp = Yposition[i].which_point;
 				Yposition[i].which_point = Yposition[i - 1].which_point;
@@ -947,50 +1025,94 @@ void shakesort(int iMax)
 
 void remplissage()
 {
-	if (list_poly[0].nb_point > 2)
+	/*if (list_poly[0].nb_point > 2)
 	{
-		printf("0\n");
+		closeThePoly (0);
 		//Copie des Ordonnées dans Yposition
-		for (int i ; i < list_poly[0].nb_point ; i++)
+		for (int i ; i <= list_poly[0].nb_point ; i++)
 		{
 			Yposition[i].which_point = list_poly[0].points[i].coord[1];
 			Yposition[i].which_poly = i;
 		}
-		shakesort(list_poly[0].nb_point);
+		shakesort(list_poly[0].nb_point+1);
 		int y;
 		int ind = 0;
-		for (int i = 1; i < list_poly[0].nb_point ; i++)
+
+
+		for (int i = 0; i < list_poly[0].nb_point; i++)
 		{
-			printf("A\n");
 			compute_bresenham(list_poly[0].points[Yposition[i].which_poly].coord[0],
 												list_poly[0].points[Yposition[i].which_poly].coord[1],
-												list_poly[0].points[Yposition[i - 1].which_poly].coord[0],
-												list_poly[0].points[Yposition[i - 1].which_poly].coord[1], 0);
+												list_poly[0].points[Yposition[i].which_poly - 1].coord[0],
+												list_poly[0].points[Yposition[i].which_poly - 1].coord[1], 0);
 
-			printf("B\n");
 			compute_bresenham(list_poly[0].points[Yposition[i].which_poly].coord[0],
 												list_poly[0].points[Yposition[i].which_poly].coord[1],
-												list_poly[0].points[Yposition[i + 1].which_poly].coord[0],
-												list_poly[0].points[Yposition[i + 1].which_poly].coord[1], 1);
+												list_poly[0].points[Yposition[i].which_poly + 1].coord[0],
+												list_poly[0].points[Yposition[i].which_poly + 1].coord[1], 1);
+			//printf("%d\n",segment_drawing[1]);
 
-			printf("C\n");
-			y = Yposition[i].which_point;
-			printf("%d --- %d --- %d\n", y, Yposition[i + 1].which_point, Yposition[i + 2].which_point);
-			while (y > Yposition[i+1].which_point)
-			{
-				y--;
-				glBegin(GL_LINES);
-				glVertex2f(segment_drawing[ind],y);
-				printf("%d----%d\n", segment_drawing[ind], y);
+				y = Yposition[i].which_point;
+				while (y > Yposition[i + 1].which_point)
+				{
+					y--;
+					glBegin(GL_LINES);
+					glVertex2f(segment_drawing[ind], y);
+					printf("%d----%d----%d----%d\n", segment_drawing[ind], segment_drawing[ind + 1], y, Yposition[i + 1].which_point);
 					glVertex2f(segment_drawing[ind + 1], y);
-				glEnd();
-				i++;
+					glEnd();
+					ind++;
+				}
+			ind = 0;
+			//}
+		}
+	}*/
+
+	if (list_poly[0].nb_point > 2)
+	{
+		closeThePoly(0);
+		//Copie des Ordonnées dans Yposition
+		for (int i = 0; i <= list_poly[0].nb_point; i++)
+		{
+			Yposition[i].which_point = list_poly[0].points[i].coord[1];
+			Yposition[i].which_poly = i;
+		}
+		shakesort(list_poly[0].nb_point + 1);
+
+		int etape = 0;
+		int ind;
+
+		for(int y = winY ; y > 0 ; y--)
+		{
+			if (y < Yposition[etape].which_point && etape < (list_poly[0].nb_point -1) )
+			{
+			printf("%d --- %d --- %d\n", y, Yposition[etape].which_point, Yposition[etape+1].which_point);
+				
+				compute_bresenham(list_poly[0].points[Yposition[etape].which_poly].coord[0],
+													list_poly[0].points[Yposition[etape].which_poly].coord[1],
+													list_poly[0].points[Yposition[etape].which_poly - 1].coord[0],
+													list_poly[0].points[Yposition[etape].which_poly - 1].coord[1], 0);
+
+				compute_bresenham(list_poly[0].points[Yposition[etape].which_poly].coord[0],
+													list_poly[0].points[Yposition[etape].which_poly].coord[1],
+													list_poly[0].points[Yposition[etape].which_poly + 1].coord[0],
+													list_poly[0].points[Yposition[etape].which_poly + 1].coord[1], 1);
+													
+				while (y > Yposition[etape+1].which_point)
+				{
+					y--;
+					glBegin(GL_LINES);
+					glVertex2f(segment_drawing[ind], y);
+					printf("%d----%d----%d----%d\n", segment_drawing[ind], segment_drawing[ind + 1], y, Yposition[etape + 1].which_point);
+					glVertex2f(segment_drawing[ind + 1], y);
+					glEnd();
+					ind++;
+				}
+				ind = 0;
+				etape++;
 			}
 		}
 	}
-
-
-
 }
 
 /* Fonction pour afficher du texte en OpenGL */
@@ -1202,7 +1324,7 @@ void usage()
 void init()
 {
   nb_poly					= 0;
-	max_sample			= 1000;
+	max_sample			= 50000;
   nb_hole					= 0;
   nb_poly_max			= 5;
   nb_hole_max			= 5;
